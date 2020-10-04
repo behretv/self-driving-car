@@ -1,4 +1,8 @@
 # Self-Diving Car Nanodegree
+## Dependencies
+1. The commands for the setup are taylored to the fish shell (see [fish  shell github page](https://github.com/fish-shell/fish-shell) for installation)
+2. Docker (see [Official docker page](https://docs.docker.com/engine/install/ubuntu/) for installation)
+
 ## Project 1
 Download the .zip file from the repository, then unzip and navigate into the folde, 
 ```bash
