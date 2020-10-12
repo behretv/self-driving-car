@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .image_processing import abs_sobel_thresh, mag_thresh, dir_threshold, hls_select, weighted_img
-from .poly import fit_poly, find_lane_pixels, measure_curvature_real, search_around_poly
+from advanced_lane_lines.poly import measure_curvature_real
 from advanced_lane_lines.poly import PolyFitToLane
 
 
@@ -70,7 +70,7 @@ class Pipeline:
         # 4 Polynomial fit
         left_fitx, right_fitx, ploty, out_img = self.poly.process(warped)
         if exit_loop == 3:
-            return []
+            return out_img
 
         # 5 Calculate radius
         left_cur, right_cur = measure_curvature_real(ploty, left_fitx, right_fitx)
