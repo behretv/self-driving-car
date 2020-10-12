@@ -2,6 +2,32 @@ import cv2
 import numpy as np
 
 
+class PolyFitToLane:
+    def __init__(self):
+        self.img_sz = []
+        self.nonzerox = []
+        self.nonzeroz = []
+        self.left_lane_inds = []
+        self.right_lane_inds = []
+        self.prev_left_fit = []
+        self.prev_right_fit = []
+
+    def process(self, warped):
+        imshape = warped.shape
+        if len(self.prev_left_fit) > 0 and len(self.prev_right_fit) > 0:
+            leftx, lefty, rightx, righty, out_img = search_around_poly(warped, self.prev_left_fit, self.prev_right_fit)
+            left_fitx, right_fitx, ploty = fit_poly(imshape, leftx, lefty, rightx, righty)
+            self.prev_left_fit = np.polyfit(lefty, leftx, 2)
+            self.prev_right_fit = np.polyfit(righty, rightx, 2)
+        else:
+            leftx, lefty, rightx, righty, out_img = find_lane_pixels(warped)
+            left_fitx, right_fitx, ploty = fit_poly(imshape, leftx, lefty, rightx, righty)
+            self.prev_left_fit = np.polyfit(lefty, leftx, 2)
+            self.prev_right_fit = np.polyfit(righty, rightx, 2)
+
+        return left_fitx, right_fitx, ploty, out_img
+
+
 def fit_poly(img_shape, leftx, lefty, rightx, righty):
     # Fit a second order polynomial to each with np.polyfit()
     left_fit = np.polyfit(lefty, leftx, 2)
@@ -15,32 +41,7 @@ def fit_poly(img_shape, leftx, lefty, rightx, righty):
     return left_fitx, right_fitx, ploty
 
 
-def search_around_poly(binary_warped, left_fit, right_fit):
-    # HYPERPARAMETER
-    # Choose the width of the margin around the previous polynomial to search
-    # The quiz grader expects 100 here, but feel free to tune on your own!
-    margin = 100
-
-    # Grab activated pixels
-    nonzero = binary_warped.nonzero()
-    nonzeroy = np.array(nonzero[0])
-    nonzerox = np.array(nonzero[1])
-
-    # Set the area of search based on activated x-values
-    x_left = left_fit[0] * (nonzeroy ** 2) + left_fit[1] * nonzeroy + left_fit[2]
-    x_right = right_fit[0] * (nonzeroy ** 2) + right_fit[1] * nonzeroy + right_fit[2]
-    left_lane_inds = (nonzerox > (x_left - margin)) & (nonzerox < (x_left + margin))
-    right_lane_inds = ((nonzerox > (x_right - margin)) & (nonzerox < (x_right + margin)))
-
-    # Again, extract left and right line pixel positions
-    leftx = nonzerox[left_lane_inds]
-    lefty = nonzeroy[left_lane_inds]
-    rightx = nonzerox[right_lane_inds]
-    righty = nonzeroy[right_lane_inds]
-
-    # Fit new polynomials
-    left_fitx, right_fitx, ploty = fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
-
+def visualize(binary_warped, nonzeroy, nonzerox, left_lane_inds, right_lane_inds, left_fitx, right_fitx, margin, ploty):
     # Visualization
     # Create an image to draw on and an image to show the selection window
     out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
@@ -66,11 +67,40 @@ def search_around_poly(binary_warped, left_fit, right_fit):
     result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
     # Plot the polynomial lines onto the image
-    #plt.plot(left_fitx, ploty, color='yellow')
-    #plt.plot(right_fitx, ploty, color='yellow')
+    # plt.plot(left_fitx, ploty, color='yellow')
+    # plt.plot(right_fitx, ploty, color='yellow')
     ## End visualization steps ##
+    return out_img
 
-    return left_fitx, right_fitx, result
+
+def search_around_poly(binary_warped, left_fit, right_fit):
+    # HYPERPARAMETER
+    # Choose the width of the margin around the previous polynomial to search
+    # The quiz grader expects 100 here, but feel free to tune on your own!
+    margin = 100
+
+    # Grab activated pixels
+    nonzero = binary_warped.nonzero()
+    nonzeroy = np.array(nonzero[0])
+    nonzerox = np.array(nonzero[1])
+
+    # Set the area of search based on activated x-values
+    x_left = left_fit[0] * (nonzeroy ** 2) + left_fit[1] * nonzeroy + left_fit[2]
+    x_right = right_fit[0] * (nonzeroy ** 2) + right_fit[1] * nonzeroy + right_fit[2]
+    left_lane_inds = (nonzerox > (x_left - margin)) & (nonzerox < (x_left + margin))
+    right_lane_inds = ((nonzerox > (x_right - margin)) & (nonzerox < (x_right + margin)))
+
+    # Again, extract left and right line pixel positions
+    leftx = nonzerox[left_lane_inds]
+    lefty = nonzeroy[left_lane_inds]
+    rightx = nonzerox[right_lane_inds]
+    righty = nonzeroy[right_lane_inds]
+
+    imshape = binary_warped.shape
+    left_fitx, right_fitx, ploty = fit_poly(imshape, leftx, lefty, rightx, righty)
+    out_img = visualize(binary_warped, nonzeroy, nonzerox, left_lane_inds, right_lane_inds, left_fitx, right_fitx, margin, ploty)
+
+    return leftx, lefty, rightx, righty, out_img
 
 
 def find_lane_pixels(binary_warped):
@@ -155,8 +185,8 @@ def find_lane_pixels(binary_warped):
     rightx = nonzerox[right_lane_inds]
     righty = nonzeroy[right_lane_inds]
 
-    #plt.plot(left_fitx, ploty, color='yellow')
-    #plt.plot(right_fitx, ploty, color='yellow')
+    # plt.plot(left_fitx, ploty, color='yellow')
+    # plt.plot(right_fitx, ploty, color='yellow')
 
     return leftx, lefty, rightx, righty, out_img
 
@@ -184,5 +214,3 @@ def measure_curvature_real(ploty, leftx, rightx):
     right_curverad = ((1 + ((2 * rA * y_eval + rB) ** 2)) ** 1.5) / np.abs(2 * rA)
 
     return left_curverad, right_curverad
-
-

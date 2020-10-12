@@ -20,6 +20,10 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./output_images/calibration.png "Undistorted"
+[image2]: ./output_images/0.png
+[image3]: ./output_images/1.png
+[image4]: ./output_images/2.png
+[image5]: ./output_images/3.png
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
