@@ -12,10 +12,11 @@ images = glob.glob('./camera_cal/calibration*.jpg')
 mtx, dist, img = camera_calibration(images)
 
 test_images = glob.glob('./test_images/*.jpg')
-img = mpimg.imread(test_images[3])
+img = mpimg.imread(test_images[5])
 pipeline = Pipeline(mtx, dist)
 pipeline.set_warp_coordinates(img)
-pipeline.process_image(img, './output_images/3.png', 3)
+pipeline.process_image(img, './output_images/4.png', 4)
+pipeline.process_image(img, './output_images/4.png', 4)
 
 pipeline.prev_left_fit = []
 pipeline.prev_right_fit = []

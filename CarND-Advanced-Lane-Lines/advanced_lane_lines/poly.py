@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class PolyFitToLane:
@@ -23,8 +24,7 @@ class PolyFitToLane:
         if len(self.prev_left_fit) > 0 and len(self.prev_right_fit) > 0:
             self.leftx, lefty, rightx, righty = self.search_around_poly(warped)
             left_fitx, right_fitx, ploty = self.fit_poly(imshape, lefty, rightx, righty)
-            out_img = self.visualize(warped, left_fitx,
-                                     right_fitx, ploty)
+            out_img = self.visualize(warped, left_fitx, right_fitx, ploty)
         else:
             self.leftx, lefty, rightx, righty, out_img = self.find_lane_pixels(warped)
             left_fitx, right_fitx, ploty = self.fit_poly(imshape, lefty, rightx, righty)
@@ -45,8 +45,7 @@ class PolyFitToLane:
 
         return left_fitx, right_fitx, ploty
 
-    def visualize(self, binary_warped, left_fitx, right_fitx,
-                  ploty):
+    def visualize(self, binary_warped, left_fitx, right_fitx, ploty):
         # Visualization
         # Create an image to draw on and an image to show the selection window
         out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
@@ -72,10 +71,11 @@ class PolyFitToLane:
         result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
         # Plot the polynomial lines onto the image
-        # plt.plot(left_fitx, ploty, color='yellow')
-        # plt.plot(right_fitx, ploty, color='yellow')
-        ## End visualization steps ##
-        return out_img
+        pts_left = np.array([left_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
+        pts_right = np.array([right_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
+        result = cv2.polylines(result, [pts_left], color=(255, 255, 0), thickness=2, isClosed=False)
+        result = cv2.polylines(result, [pts_right], color=(255, 255, 0), thickness=2, isClosed=False)
+        return result
 
     def search_around_poly(self, binary_warped):
         # Grab activated pixels
