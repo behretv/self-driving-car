@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class PolyFitToLane:
@@ -184,32 +183,6 @@ class PolyFitToLane:
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds]
 
-        # plt.plot(left_fitx, ploty, color='yellow')
-        # plt.plot(right_fitx, ploty, color='yellow')
-
         return leftx, lefty, rightx, righty, out_img
 
 
-def measure_curvature_real(ploty, leftx, rightx):
-    """
-    Calculates the curvature of polynomial functions in meters.
-    """
-    # Define conversions in x and y from pixels space to meters
-    ym_per_pix = 30 / 720  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-    left_fit_cr = np.polyfit(ploty * ym_per_pix, leftx * xm_per_pix, 2)
-    right_fit_cr = np.polyfit(ploty * ym_per_pix, rightx * xm_per_pix, 2)
-
-    # Define y-value where we want radius of curvature
-    # We'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = np.max(ploty) * ym_per_pix
-    lA = left_fit_cr[0]
-    lB = left_fit_cr[1]
-    lC = left_fit_cr[2]
-    rA = right_fit_cr[0]
-    rB = right_fit_cr[1]
-    rC = right_fit_cr[2]
-    left_curverad = ((1 + ((2 * lA * y_eval + lB) ** 2)) ** 1.5) / np.abs(2 * lA)
-    right_curverad = ((1 + ((2 * rA * y_eval + rB) ** 2)) ** 1.5) / np.abs(2 * rA)
-
-    return left_curverad, right_curverad
