@@ -165,6 +165,8 @@ Here's a [link to my video result](./result.mp4)
 Where will your pipeline likely fail?  What could you do to make it more robust?
 
 The identification of the lane pixels might identify pixels outside the road, if the curves are very harsh and the 
-car is driving on the edge of the lane. A possible solution might be a smaller margin for the polynomial search or an 
-exclusion of outliers while applying the window/histogram based approach.
+car is driving on the edge of the lane. Possible solutions might be:
+- A smaller margin for the polynomial search 
+- An exclusion of outliers while applying the window/histogram based approach.
+- Adjusting the margins to the position of the car from the center
 
