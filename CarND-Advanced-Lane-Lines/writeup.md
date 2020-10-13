@@ -93,7 +93,7 @@ transformed image.
 
 The code for my perspective transform includes a function called `warp_coordinates()`, which appears in lines 20 through 
 27 in the file `pipline.py` (advanced_lane_lines/pipeline.py). The `warp_coordinates()` function takes as inputs an 
-image (`img`), as well as source (`src`) and destination (`dst`) points. I chose the hardcode the source and destination 
+image (`img`), as well as source (`src`) and destination (`dst`) points. I chose the source and destination 
 points in the following manner:
 
 ```python
@@ -104,8 +104,9 @@ dy1 = sz[0] / 2 * 1.25
 
 src = np.float32([[dx0, sz[0]], [dx1, dy1], [sz[1] - dx1, dy1], [sz[1] - dx0, sz[0]]])
 dst = np.float32([[200, sz[0]], [200, 0], [sz[1] - 200, 0], [sz[1] - 200, sz[0]]])
+src[:, 0] += xoffset / 2
 ```
-
+As you can see I apply and additional offset, which is computed from the position of the lanes within the image.
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 

@@ -21,8 +21,8 @@ class Pipeline:
 
     def warp_coordinates(self, img):
         sz = img.shape
-        dx0 = 220
-        dx1 = sz[1] / 2 * 0.92
+        dx0 = 250
+        dx1 = sz[1] / 2 * 0.9
         dy1 = sz[0] / 2 * 1.25
 
         self.src = np.float32([[dx0, sz[0]], [dx1, dy1], [sz[1] - dx1, dy1], [sz[1] - dx0, sz[0]]])
@@ -80,25 +80,27 @@ class Pipeline:
             return out_img
 
         # 5 Calculate radius
-        curvature, distance = self.measure_curvature_real(ploty, left_fitx, right_fitx)
-        self.list_radius.append(curvature)
+        left_radius, right_radius, distance = self.measure_curvature_real(ploty, left_fitx, right_fitx)
+        self.list_radius.append(np.mean([left_radius, right_radius]))
         if exit_loop == 4:
-            cv2.putText(undist, 'curvature={:.2f}'.format(curvature),
-                        org=(50, 50), thickness=2, color=(255, 255, 255), fontScale=4,
-                        fontFace=cv2.FONT_HERSHEY_PLAIN)
-            cv2.putText(undist, 'distance={:.2f}'.format(distance),
-                        org=(50, 100), thickness=2, color=(255, 255, 255), fontScale=4,
+            cv2.putText(undist, 'Curvature left={:.2f}m'.format(left_radius), org=(50, 50), thickness=2,
+                        color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
+            cv2.putText(undist, 'Curvature right={:.2f}m'.format(right_radius), org=(50, 100), thickness=2,
+                        color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
+            cv2.putText(undist, 'distance={:.2f}m'.format(distance),
+                        org=(50, 150), thickness=2, color=(255, 255, 255), fontScale=2,
                         fontFace=cv2.FONT_HERSHEY_PLAIN)
             return undist
 
         # 6 Transform back
         unwarped = cv2.warpPerspective(color_warp, Minv, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
-        cv2.putText(unwarped, 'curvature={:.2f}'.format(curvature),
-                    org=(50, 50), thickness=2, color=(255, 255, 255), fontScale=4,
-                    fontFace=cv2.FONT_HERSHEY_PLAIN)
-        cv2.putText(unwarped, 'distance={:.2f}'.format(distance),
-                    org=(50, 100), thickness=2, color=(255, 255, 255), fontScale=4,
+        cv2.putText(unwarped, 'Curvature left={:.2f}m'.format(left_radius), org=(50, 50), thickness=2,
+                    color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
+        cv2.putText(unwarped, 'Curvature right={:.2f}m'.format(right_radius), org=(50, 100), thickness=2,
+                    color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
+        cv2.putText(unwarped, 'Deviation={:.2f}m'.format(np.abs(left_radius - right_radius)),
+                    org=(50, 150), thickness=2, color=(255, 255, 255), fontScale=2,
                     fontFace=cv2.FONT_HERSHEY_PLAIN)
         return weighted_img(unwarped, undist)
 
@@ -128,4 +130,4 @@ class Pipeline:
         self.xoffset = np.mean([leftx[-1], rightx[-1]]) - self.img_sz[1] / 2
         distance = np.abs(self.xoffset) * xm_per_pix
 
-        return np.mean([left_curverad, right_curverad]), distance
+        return left_curverad, right_curverad, distance
