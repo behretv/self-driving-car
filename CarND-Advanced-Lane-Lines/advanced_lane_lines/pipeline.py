@@ -15,18 +15,25 @@ class Pipeline:
         self.prev_left_fit = []
         self.prev_right_fit = []
         self.poly = PolyFitToLane()
+        self.list_radius = []
+        self.img_sz = []
 
     def warp_coordinates(self, img):
         sz = img.shape
-        dx0 = 250
+        dx0 = 200
         dx1 = sz[1] / 2 * 0.9
         dy1 = sz[0] / 2 * 1.25
 
         self.src = np.float32([[dx0, sz[0]], [dx1, dy1], [sz[1] - dx1, dy1], [sz[1] - dx0, sz[0]]])
         self.dst = np.float32([[200, sz[0]], [200, 0], [sz[1] - 200, 0], [sz[1] - 200, sz[0]]])
+        self.img_sz = sz
 
     def process_image(self, img, output_name, exit_loop):
         out = self.pipeline(img, exit_loop=exit_loop)
+        if len(out.shape) == 2:
+            color_map = 'gray'
+        else:
+            color_map = None
 
         # Plotting thresholded images
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
@@ -36,7 +43,7 @@ class Pipeline:
         x = self.src[:, 0]
         y = self.src[:, 1]
         ax1.plot(x, y, 'b--', lw=2)
-        ax2.imshow(out)
+        ax2.imshow(out, cmap=color_map)
         plt.savefig(output_name)
 
     def pipeline(self, img, exit_loop=7):
@@ -70,8 +77,16 @@ class Pipeline:
             return out_img
 
         # 5 Calculate radius
-        left_cur, right_cur = measure_curvature_real(ploty, left_fitx, right_fitx)
-        print('l={} \t r={}'.format(left_cur, right_cur))
+        curvature, distance = self.measure_curvature_real(ploty, left_fitx, right_fitx)
+        self.list_radius.append(curvature)
+        if exit_loop == 4:
+            cv2.putText(undist, 'curvature={}'.format(curvature),
+                        org=(50, 50), thickness=2, color=(255, 255, 255), fontScale=4,
+                        fontFace=cv2.FONT_HERSHEY_PLAIN)
+            cv2.putText(undist, 'distance={}'.format(distance),
+                        org=(50, 100), thickness=2, color=(255, 255, 255), fontScale=4,
+                        fontFace=cv2.FONT_HERSHEY_PLAIN)
+            return undist
 
         # 6 Transform back
         warp_zero = np.zeros_like(warped).astype(np.uint8)
@@ -82,29 +97,31 @@ class Pipeline:
         cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
         unwarped = cv2.warpPerspective(color_warp, Minv, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
-        return weighted_img(unwarped, img)
+        return weighted_img(unwarped, undist)
 
+    def measure_curvature_real(self, ploty, leftx, rightx):
+        """
+        Calculates the curvature of polynomial functions in meters.
+        """
+        # Define conversions in x and y from pixels space to meters
+        ym_per_pix = 30 / 720  # meters per pixel in y dimension
+        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
+        left_fit_cr = np.polyfit(ploty * ym_per_pix, leftx * xm_per_pix, 2)
+        right_fit_cr = np.polyfit(ploty * ym_per_pix, rightx * xm_per_pix, 2)
 
-def measure_curvature_real(ploty, leftx, rightx):
-    """
-    Calculates the curvature of polynomial functions in meters.
-    """
-    # Define conversions in x and y from pixels space to meters
-    ym_per_pix = 30 / 720  # meters per pixel in y dimension
-    xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-    left_fit_cr = np.polyfit(ploty * ym_per_pix, leftx * xm_per_pix, 2)
-    right_fit_cr = np.polyfit(ploty * ym_per_pix, rightx * xm_per_pix, 2)
+        # Define y-value where we want radius of curvature
+        # We'll choose the maximum y-value, corresponding to the bottom of the image
+        y_eval = np.max(ploty) * ym_per_pix
+        lA = left_fit_cr[0]
+        lB = left_fit_cr[1]
+        lC = left_fit_cr[2]
+        rA = right_fit_cr[0]
+        rB = right_fit_cr[1]
+        rC = right_fit_cr[2]
+        left_curverad = ((1 + ((2 * lA * y_eval + lB) ** 2)) ** 1.5) / np.abs(2 * lA)
+        right_curverad = ((1 + ((2 * rA * y_eval + rB) ** 2)) ** 1.5) / np.abs(2 * rA)
 
-    # Define y-value where we want radius of curvature
-    # We'll choose the maximum y-value, corresponding to the bottom of the image
-    y_eval = np.max(ploty) * ym_per_pix
-    lA = left_fit_cr[0]
-    lB = left_fit_cr[1]
-    lC = left_fit_cr[2]
-    rA = right_fit_cr[0]
-    rB = right_fit_cr[1]
-    rC = right_fit_cr[2]
-    left_curverad = ((1 + ((2 * lA * y_eval + lB) ** 2)) ** 1.5) / np.abs(2 * lA)
-    right_curverad = ((1 + ((2 * rA * y_eval + rB) ** 2)) ** 1.5) / np.abs(2 * rA)
+        # Distance from the center
+        distance = np.abs(np.mean([leftx[-1], rightx[-1]]) - self.img_sz[1] / 2) * xm_per_pix
 
-    return left_curverad, right_curverad
+        return np.mean([left_curverad, right_curverad]), distance
