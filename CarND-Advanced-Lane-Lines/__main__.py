@@ -12,7 +12,7 @@ mtx, dist, img = camera_calibration(images)
 test_images = glob.glob('./test_images/*.jpg')
 pipeline_img = Pipeline(mtx, dist)
 
-for i in range(0, 6):
+for i in range(0, 8):
     img = mpimg.imread(test_images[i])
     pipeline_img.warp_coordinates(img)
     pipeline_img.process_image(img, './output_images/{}.png'.format(i), i)

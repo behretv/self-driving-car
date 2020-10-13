@@ -1,3 +1,4 @@
+import time
 import cv2
 import glob
 import numpy as np
@@ -27,6 +28,7 @@ print(min_values)
 print(max_values)
 
 # Play video
+time.sleep(1)
 cap = cv2.VideoCapture("./output_videos/result_result.mp4")
 ret, frame = cap.read()
 while (1):
