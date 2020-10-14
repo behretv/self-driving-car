@@ -24,6 +24,12 @@ class PolyFitToLane:
         self.left_lane_inds = 0
         self.right_lane_inds = 0
 
+        self.out_img = None
+
+    def get_img(self):
+        assert self.out_img is not None
+        return self.out_img
+
     def process(self, warped):
         self.img_sz = warped.shape
 
@@ -35,14 +41,14 @@ class PolyFitToLane:
         if len(self.prev_left_fit) > 0 and len(self.prev_right_fit) > 0:
             self.search_around_poly()
             left_fitx, right_fitx, ploty = self.fit_poly()
-            out_img = self.image_poly_search(warped, left_fitx, right_fitx, ploty)
+            self.image_poly_search(warped, left_fitx, right_fitx, ploty)
         else:
-            out_img = self.find_lane_pixels(warped)
+            self.find_lane_pixels(warped)
             left_fitx, right_fitx, ploty = self.fit_poly()
 
         self.sane_lane(left_fitx, right_fitx)
 
-        return self.sane_left, self.sane_right, ploty, out_img
+        return self.sane_left, self.sane_right, ploty
 
     def sane_lane(self, left_fitx, right_fitx, threshold=100):
         if len(self.sane_left) == 0:
@@ -86,11 +92,11 @@ class PolyFitToLane:
     def image_poly_search(self, binary_warped, left_fitx, right_fitx, ploty):
         # Visualization
         # Create an image to draw on and an image to show the selection window
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
-        window_img = np.zeros_like(out_img)
+        img_tmp = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
+        window_img = np.zeros_like(img_tmp)
         # Color in left and right line pixels
-        out_img[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
-        out_img[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
+        img_tmp[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
+        img_tmp[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
 
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
@@ -105,14 +111,13 @@ class PolyFitToLane:
         # Draw the lane onto the warped blank image
         cv2.fillPoly(window_img, np.int_([left_line_pts]), (0, 255, 0))
         cv2.fillPoly(window_img, np.int_([right_line_pts]), (0, 255, 0))
-        result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+        self.out_img = cv2.addWeighted(img_tmp, 1, window_img, 0.3, 0)
 
         # Plot the polynomial lines onto the image
         pts_left = np.array([left_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
         pts_right = np.array([right_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
-        result = cv2.polylines(result, [pts_left], color=(255, 255, 0), thickness=2, isClosed=False)
-        result = cv2.polylines(result, [pts_right], color=(255, 255, 0), thickness=2, isClosed=False)
-        return result
+        self.out_img = cv2.polylines(self.out_img, [pts_left], color=(255, 255, 0), thickness=2, isClosed=False)
+        self.out_img = cv2.polylines(self.out_img, [pts_right], color=(255, 255, 0), thickness=2, isClosed=False)
 
     def search_around_poly(self):
         # Set the area of search based on activated x-values
@@ -136,7 +141,7 @@ class PolyFitToLane:
         # Take a histogram of the bottom half of the image
         histogram = np.sum(binary_warped[self.img_sz[0] // 2:, :], axis=0)
         # Create an output image to draw on and visualize the result
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))
+        self.out_img = np.dstack((binary_warped, binary_warped, binary_warped))
         # Find the peak of the left and right halves of the histogram
         # These will be the starting point for the left and right lines
         midpoint = np.int(histogram.shape[0] // 2)
@@ -166,9 +171,9 @@ class PolyFitToLane:
             win_xright_high = rightx_current + self.margin_window
 
             # Draw the windows on the visualization image
-            cv2.rectangle(out_img, (win_xleft_low, win_y_low),
+            cv2.rectangle(self.out_img, (win_xleft_low, win_y_low),
                           (win_xleft_high, win_y_high), (0, 255, 0), 2)
-            cv2.rectangle(out_img, (win_xright_low, win_y_low),
+            cv2.rectangle(self.out_img, (win_xright_low, win_y_low),
                           (win_xright_high, win_y_high), (0, 255, 0), 2)
 
             # Identify the nonzero pixels in x and y within the window ###
@@ -198,7 +203,6 @@ class PolyFitToLane:
             pass
 
         self._extract_line_pixels(left_lane_inds, right_lane_inds)
-        return out_img
 
     def _extract_line_pixels(self, left_lane_inds, right_lane_inds):
         self.leftx = self.nonzerox[left_lane_inds]

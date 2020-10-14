@@ -74,10 +74,10 @@ class Pipeline:
             return cv2.warpPerspective(undist, M, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
         # 4 Polynomial fit
-        left_fitx, right_fitx, ploty, out_img = self.poly.process(warped)
+        left_fitx, right_fitx, ploty = self.poly.process(warped)
         color_warp = self.poly.image_detected_lane(warped, ploty)
         if exit_loop == 3:
-            return out_img
+            return self.poly.get_img()
 
         # 5 Calculate radius
         left_radius, right_radius, distance = self.measure_curvature_real(ploty, left_fitx, right_fitx)
