@@ -15,14 +15,10 @@ class PolyFitToLane:
         self.prev_right_fit = []
 
         self.img_sz = []
-        self.leftx = []
-        self.lefty = []
-        self.rightx = []
-        self.righty = []
         self.nonzerox = np.array([])
         self.nonzeroy = np.array([])
-        self.left_lane_inds = 0
-        self.right_lane_inds = 0
+        self.left_lane_inds = []
+        self.right_lane_inds = []
 
         self.out_img = None
 
@@ -60,10 +56,22 @@ class PolyFitToLane:
         elif np.average(np.abs(right_fitx - self.sane_right)) < threshold:
             self.sane_right = right_fitx
 
+    def compute_polynomes(self):
+        leftx = self.nonzerox[self.left_lane_inds]
+        lefty = self.nonzeroy[self.left_lane_inds]
+        rightx = self.nonzerox[self.right_lane_inds]
+        righty = self.nonzeroy[self.right_lane_inds]
+        left_fit = np.polyfit(lefty, leftx, 2)
+        right_fit = np.polyfit(righty, rightx, 2)
+
     def fit_poly(self):
         # Fit a second order polynomial to each with np.polyfit()
-        left_fit = np.polyfit(self.lefty, self.leftx, 2)
-        right_fit = np.polyfit(self.righty, self.rightx, 2)
+        leftx = self.nonzerox[self.left_lane_inds]
+        lefty = self.nonzeroy[self.left_lane_inds]
+        rightx = self.nonzerox[self.right_lane_inds]
+        righty = self.nonzeroy[self.right_lane_inds]
+        left_fit = np.polyfit(lefty, leftx, 2)
+        right_fit = np.polyfit(righty, rightx, 2)
         ploty = np.linspace(0, self.img_sz[0] - 1, self.img_sz[0])
 
         mean_fit = np.mean([left_fit, right_fit], axis=0)
@@ -130,12 +138,10 @@ class PolyFitToLane:
 
         left_roi = (np.min(x_right) > self.nonzerox) & (self.nonzerox < self.img_sz[1]//2)
         right_roi = (np.max(x_left) < self.nonzerox) & (self.nonzerox > self.img_sz[1]//2)
-        left_lane_inds = (self.nonzerox > (x_left - self.margin_poly)) & \
+        self.left_lane_inds = (self.nonzerox > (x_left - self.margin_poly)) & \
                          (self.nonzerox < (x_left + self.margin_poly)) & left_roi
-        right_lane_inds = (self.nonzerox > (x_right - self.margin_poly)) & \
+        self.right_lane_inds = (self.nonzerox > (x_right - self.margin_poly)) & \
                           (self.nonzerox < (x_right + self.margin_poly)) & right_roi
-
-        self._extract_line_pixels(left_lane_inds, right_lane_inds)
 
     def find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
@@ -151,10 +157,6 @@ class PolyFitToLane:
         # Current positions to be updated later for each window in nwindows
         leftx_current = leftx_base
         rightx_current = rightx_base
-
-        # Create empty lists to receive left and right lane pixel indices
-        left_lane_inds = []
-        right_lane_inds = []
 
         # Set height of windows - based on nwindows above and image shape
         window_height = np.int(self.img_sz[0] // self.nwindows)
@@ -184,8 +186,8 @@ class PolyFitToLane:
             good_right_inds = (idx_y_in_window & idx_right_in_window).nonzero()[0]
 
             # Append these indices to the lists
-            left_lane_inds.append(good_left_inds)
-            right_lane_inds.append(good_right_inds)
+            self.left_lane_inds.append(good_left_inds)
+            self.right_lane_inds.append(good_right_inds)
 
             # If you found > minpix pixels, recenter next window
             # (`right` or `leftx_current`) on their mean position
@@ -196,18 +198,9 @@ class PolyFitToLane:
 
         # Concatenate the arrays of indices (previously was a list of lists of pixels)
         try:
-            left_lane_inds = np.concatenate(left_lane_inds)
-            right_lane_inds = np.concatenate(right_lane_inds)
+            self.left_lane_inds = np.concatenate(self.left_lane_inds)
+            self.right_lane_inds = np.concatenate(self.right_lane_inds)
         except ValueError:
             # Avoids an error if the above is not implemented fully
             pass
 
-        self._extract_line_pixels(left_lane_inds, right_lane_inds)
-
-    def _extract_line_pixels(self, left_lane_inds, right_lane_inds):
-        self.leftx = self.nonzerox[left_lane_inds]
-        self.lefty = self.nonzeroy[left_lane_inds]
-        self.rightx = self.nonzerox[right_lane_inds]
-        self.righty = self.nonzeroy[right_lane_inds]
-        self.left_lane_inds = left_lane_inds
-        self.right_lane_inds = right_lane_inds
