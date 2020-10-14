@@ -63,8 +63,8 @@ class PolyFitToLane:
         mean_fit = np.mean([left_fit, right_fit], axis=0)
         left_fit = list(left_fit)
         right_fit = list(right_fit)
-        left_fit[0] = mean_fit[0]
-        right_fit[0] = mean_fit[0]
+        #left_fit[0] = mean_fit[0]
+        #right_fit[0] = mean_fit[0]
 
         # Calc both polynomials using ploty, left_fit and right_fit
         left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]

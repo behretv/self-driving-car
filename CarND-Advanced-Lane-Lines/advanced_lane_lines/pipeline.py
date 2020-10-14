@@ -21,7 +21,7 @@ class Pipeline:
 
     def warp_coordinates(self, img):
         sz = img.shape
-        dx0 = 250
+        dx0 = 200
         dx1 = sz[1] / 2 * 0.9
         dy1 = sz[0] / 2 * 1.25
 
