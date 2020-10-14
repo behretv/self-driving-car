@@ -19,7 +19,7 @@ pipeline.warp_coordinates(video_clip.get_frame(0))
 video_result = video_clip.fl_image(pipeline.pipeline)
 video_result.write_videofile('./output_videos/challenge_result.mp4')
 
-data = np.array(pipeline.list_radius)
+data = np.array(pipeline.list_curvatures)
 min_values = data.min(axis=0, initial=0)
 max_values = data.max(axis=0, initial=0)
 print(min_values)

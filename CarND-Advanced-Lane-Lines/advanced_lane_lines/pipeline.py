@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from .image_processing import abs_sobel_thresh, mag_thresh, dir_threshold, hls_select, weighted_img
 from advanced_lane_lines.poly_fit_to_lane import PolyFitToLane
+from advanced_lane_lines.lane import Lane
 
 
 class Pipeline:
@@ -15,9 +16,11 @@ class Pipeline:
         self.prev_left_fit = []
         self.prev_right_fit = []
         self.poly = PolyFitToLane()
-        self.list_radius = []
+        self.lane = Lane()
         self.img_sz = []
-        self.xoffset = 0
+
+        self.img_color = None
+        self.img_binary = None
 
     def warp_coordinates(self, img):
         sz = img.shape
@@ -28,7 +31,7 @@ class Pipeline:
         self.src = np.float32([[dx0, sz[0]], [dx1, dy1], [sz[1] - dx1, dy1], [sz[1] - dx0, sz[0]]])
         self.dst = np.float32([[200, sz[0]], [200, 0], [sz[1] - 200, 0], [sz[1] - 200, sz[0]]])
         self.img_sz = sz
-        self.src[:, 0] += self.xoffset / 2
+        self.src[:, 0] += self.lane.xoffset / 2
 
     def process_image(self, img, output_name, exit_loop):
         out = self.pipeline(img, exit_loop=exit_loop)
@@ -50,16 +53,16 @@ class Pipeline:
 
     def pipeline(self, img, exit_loop=7):
         # 1 Distortion correction
-        undist = cv2.undistort(img, self.mtx, self.dist, None, self.mtx)
+        self.img_color = cv2.undistort(img, self.mtx, self.dist, None, self.mtx)
         if exit_loop == 0:
-            return undist
+            return self.img_color
 
         # 2 Apply thresholds
         ksize = 3  # Choose a larger odd number to smooth gradient measurements
-        gradx = abs_sobel_thresh(undist, orient='x', sobel_kernel=ksize, thresh=(20, 100))
-        mag_binary = mag_thresh(undist, sobel_kernel=ksize, mag_thresh=(30, 100))
-        dir_binary = dir_threshold(undist, sobel_kernel=ksize, thresh=(np.pi / 3, np.pi / 1.5))
-        s_binary = hls_select(undist, thresh=(100, 255), channel=2)
+        gradx = abs_sobel_thresh(self.img_color, orient='x', sobel_kernel=ksize, thresh=(20, 100))
+        mag_binary = mag_thresh(self.img_color, sobel_kernel=ksize, mag_thresh=(30, 100))
+        dir_binary = dir_threshold(self.img_color, sobel_kernel=ksize, thresh=(np.pi / 3, np.pi / 1.5))
+        s_binary = hls_select(self.img_color, thresh=(100, 255), channel=2)
 
         combined = np.zeros_like(dir_binary)
         combined[(s_binary == 1) | ((gradx == 1) | ((mag_binary == 1) & (dir_binary == 1)))] = 1
@@ -67,67 +70,27 @@ class Pipeline:
             return combined
 
         # 3 Perspective transformation
-        M = cv2.getPerspectiveTransform(self.src, self.dst)
-        Minv = cv2.getPerspectiveTransform(self.dst, self.src)
-        warped = cv2.warpPerspective(combined, M, combined.shape[::-1], flags=cv2.INTER_LINEAR)
+        m = cv2.getPerspectiveTransform(self.src, self.dst)
+        warped = cv2.warpPerspective(combined, m, combined.shape[::-1], flags=cv2.INTER_LINEAR)
         if exit_loop == 2:
-            return cv2.warpPerspective(undist, M, combined.shape[::-1], flags=cv2.INTER_LINEAR)
+            return cv2.warpPerspective(self.img_color, m, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
         # 4 Polynomial fit
         left_fitx, right_fitx, ploty = self.poly.process(warped)
-        color_warp = self.poly.image_detected_lane(warped, ploty)
         if exit_loop == 3:
             return self.poly.get_img()
 
         # 5 Calculate radius
-        left_radius, right_radius, distance = self.measure_curvature_real(ploty, left_fitx, right_fitx)
-        self.list_radius.append(np.mean([left_radius, right_radius]))
+        self.lane.set_geometry(self.img_sz, left_fitx, right_fitx, ploty)
+        self.lane.measure_curvature_real()
+        self.lane.add_text(self.img_color)
         if exit_loop == 4:
-            cv2.putText(undist, 'Curvature left={:.2f}m'.format(left_radius), org=(50, 50), thickness=2,
-                        color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
-            cv2.putText(undist, 'Curvature right={:.2f}m'.format(right_radius), org=(50, 100), thickness=2,
-                        color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
-            cv2.putText(undist, 'distance={:.2f}m'.format(distance),
-                        org=(50, 150), thickness=2, color=(255, 255, 255), fontScale=2,
-                        fontFace=cv2.FONT_HERSHEY_PLAIN)
-            return undist
+            return self.img_color
 
         # 6 Transform back
-        unwarped = cv2.warpPerspective(color_warp, Minv, combined.shape[::-1], flags=cv2.INTER_LINEAR)
+        color_warp = self.poly.image_detected_lane(warped, ploty)
+        minv = cv2.getPerspectiveTransform(self.dst, self.src)
+        unwarped = cv2.warpPerspective(color_warp, minv, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
-        cv2.putText(unwarped, 'Curvature left={:.2f}m'.format(left_radius), org=(50, 50), thickness=2,
-                    color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
-        cv2.putText(unwarped, 'Curvature right={:.2f}m'.format(right_radius), org=(50, 100), thickness=2,
-                    color=(255, 255, 255), fontScale=2, fontFace=cv2.FONT_HERSHEY_PLAIN)
-        cv2.putText(unwarped, 'Deviation={:.2f}m'.format(np.abs(left_radius - right_radius)),
-                    org=(50, 150), thickness=2, color=(255, 255, 255), fontScale=2,
-                    fontFace=cv2.FONT_HERSHEY_PLAIN)
-        return weighted_img(unwarped, undist)
+        return weighted_img(unwarped, self.img_color)
 
-    def measure_curvature_real(self, ploty, leftx, rightx):
-        """
-        Calculates the curvature of polynomial functions in meters.
-        """
-        # Define conversions in x and y from pixels space to meters
-        ym_per_pix = 30 / 720  # meters per pixel in y dimension
-        xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-        left_fit_cr = np.polyfit(ploty * ym_per_pix, leftx * xm_per_pix, 2)
-        right_fit_cr = np.polyfit(ploty * ym_per_pix, rightx * xm_per_pix, 2)
-
-        # Define y-value where we want radius of curvature
-        # We'll choose the maximum y-value, corresponding to the bottom of the image
-        y_eval = np.max(ploty) * ym_per_pix
-        lA = left_fit_cr[0]
-        lB = left_fit_cr[1]
-        lC = left_fit_cr[2]
-        rA = right_fit_cr[0]
-        rB = right_fit_cr[1]
-        rC = right_fit_cr[2]
-        left_curverad = ((1 + ((2 * lA * y_eval + lB) ** 2)) ** 1.5) / np.abs(2 * lA)
-        right_curverad = ((1 + ((2 * rA * y_eval + rB) ** 2)) ** 1.5) / np.abs(2 * rA)
-
-        # Distance from the center
-        self.xoffset = np.mean([leftx[-1], rightx[-1]]) - self.img_sz[1] / 2
-        distance = np.abs(self.xoffset) * xm_per_pix
-
-        return left_curverad, right_curverad, distance

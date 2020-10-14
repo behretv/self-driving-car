@@ -128,12 +128,12 @@ class PolyFitToLane:
                   self.prev_right_fit[1] * self.nonzeroy + \
                   self.prev_right_fit[2]
 
-        left_of_right_lane = np.min(x_right) > self.nonzerox
-        right_of_left_lane = np.max(x_left) < self.nonzerox
+        left_roi = (np.min(x_right) > self.nonzerox) & (self.nonzerox < self.img_sz[1]//2)
+        right_roi = (np.max(x_left) < self.nonzerox) & (self.nonzerox > self.img_sz[1]//2)
         left_lane_inds = (self.nonzerox > (x_left - self.margin_poly)) & \
-                         (self.nonzerox < (x_left + self.margin_poly)) & left_of_right_lane
+                         (self.nonzerox < (x_left + self.margin_poly)) & left_roi
         right_lane_inds = (self.nonzerox > (x_right - self.margin_poly)) & \
-                          (self.nonzerox < (x_right + self.margin_poly)) & right_of_left_lane
+                          (self.nonzerox < (x_right + self.margin_poly)) & right_roi
 
         self._extract_line_pixels(left_lane_inds, right_lane_inds)
 
