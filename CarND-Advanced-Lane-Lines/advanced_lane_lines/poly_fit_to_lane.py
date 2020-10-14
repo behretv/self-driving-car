@@ -11,6 +11,7 @@ class PolyFitToLane:
 
         self.sane_left = np.array([])
         self.sane_right = np.array([])
+        self.ploty = np.array([])
         self.poly_left = []
         self.poly_right = []
 
@@ -28,6 +29,7 @@ class PolyFitToLane:
 
     def process(self, warped):
         self.img_sz = warped.shape
+        self.ploty = np.linspace(0, self.img_sz[0] - 1, self.img_sz[0])
 
         # Grab activated pixels
         nonzero = warped.nonzero()
@@ -37,18 +39,16 @@ class PolyFitToLane:
         if len(self.poly_left) > 0 and len(self.poly_right) > 0:
             self.search_around_poly()
             self.compute_polynomes()
-            left_fitx, right_fitx, ploty = self.compute_polynom_coordinates()
-            self.image_poly_search(warped, left_fitx, right_fitx, ploty)
+            self.compute_polynom_coordinates()
+            self.image_poly_search(warped)
         else:
             self.find_lane_pixels(warped)
             self.compute_polynomes()
-            left_fitx, right_fitx, ploty = self.compute_polynom_coordinates()
+            self.compute_polynom_coordinates()
 
-        self.sane_lane(left_fitx, right_fitx)
+        return self.sane_left, self.sane_right, self.ploty
 
-        return self.sane_left, self.sane_right, ploty
-
-    def sane_lane(self, left_fitx, right_fitx, threshold=100):
+    def set_sane_lane(self, left_fitx, right_fitx, threshold=100):
         if len(self.sane_left) == 0:
             self.sane_left = left_fitx
         elif np.average(np.abs(left_fitx - self.sane_left)) < threshold:
@@ -69,11 +69,9 @@ class PolyFitToLane:
 
     def compute_polynom_coordinates(self):
         # Calc both polynomials using ploty, left_fit and right_fit
-        ploty = np.linspace(0, self.img_sz[0] - 1, self.img_sz[0])
-        left_fitx = self.poly_left[0] * ploty ** 2 + self.poly_left[1] * ploty + self.poly_left[2]
-        right_fitx = self.poly_right[0] * ploty ** 2 + self.poly_right[1] * ploty + self.poly_right[2]
-
-        return left_fitx, right_fitx, ploty
+        left_fitx = self.poly_left[0] * self.ploty ** 2 + self.poly_left[1] * self.ploty + self.poly_left[2]
+        right_fitx = self.poly_right[0] * self.ploty ** 2 + self.poly_right[1] * self.ploty + self.poly_right[2]
+        self.set_sane_lane(left_fitx, right_fitx)
 
     def image_detected_lane(self, warped, ploty):
         warp_zero = np.zeros_like(warped).astype(np.uint8)
@@ -84,7 +82,7 @@ class PolyFitToLane:
         cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
         return color_warp
 
-    def image_poly_search(self, binary_warped, left_fitx, right_fitx, ploty):
+    def image_poly_search(self, binary_warped):
         # Visualization
         # Create an image to draw on and an image to show the selection window
         img_tmp = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
@@ -95,12 +93,13 @@ class PolyFitToLane:
 
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
-        left_line_window1 = np.array([np.transpose(np.vstack([left_fitx - self.margin_poly, ploty]))])
-        left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx + self.margin_poly,
-                                                                        ploty])))])
+        left_line_window1 = np.array([np.transpose(np.vstack([self.sane_left - self.margin_poly, self.ploty]))])
+        left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([self.sane_left + self.margin_poly,
+                                                                        self.ploty])))])
         left_line_pts = np.hstack((left_line_window1, left_line_window2))
-        right_line_window1 = np.array([np.transpose(np.vstack([right_fitx - self.margin_poly, ploty]))])
-        right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx + self.margin_poly, ploty])))])
+        right_line_window1 = np.array([np.transpose(np.vstack([self.sane_right - self.margin_poly, self.ploty]))])
+        right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([self.sane_right + self.margin_poly,
+                                                                         self.ploty])))])
         right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
         # Draw the lane onto the warped blank image
@@ -109,8 +108,8 @@ class PolyFitToLane:
         self.out_img = cv2.addWeighted(img_tmp, 1, window_img, 0.3, 0)
 
         # Plot the polynomial lines onto the image
-        pts_left = np.array([left_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
-        pts_right = np.array([right_fitx, ploty], np.int32).T.reshape((-1, 1, 2))
+        pts_left = np.array([self.sane_left, self.ploty], np.int32).T.reshape((-1, 1, 2))
+        pts_right = np.array([self.sane_right, self.ploty], np.int32).T.reshape((-1, 1, 2))
         self.out_img = cv2.polylines(self.out_img, [pts_left], color=(255, 255, 0), thickness=2, isClosed=False)
         self.out_img = cv2.polylines(self.out_img, [pts_right], color=(255, 255, 0), thickness=2, isClosed=False)
 
