@@ -11,14 +11,14 @@ class PolyFitToLane:
 
         self.sane_left = np.array([])
         self.sane_right = np.array([])
-        self.prev_left_fit = []
-        self.prev_right_fit = []
+        self.poly_left = []
+        self.poly_right = []
 
         self.img_sz = []
         self.nonzerox = np.array([])
         self.nonzeroy = np.array([])
-        self.left_lane_inds = []
-        self.right_lane_inds = []
+        self.lane_inds_left = []
+        self.lane_inds_right = []
 
         self.out_img = None
 
@@ -34,13 +34,15 @@ class PolyFitToLane:
         self.nonzeroy = np.array(nonzero[0])
         self.nonzerox = np.array(nonzero[1])
 
-        if len(self.prev_left_fit) > 0 and len(self.prev_right_fit) > 0:
+        if len(self.poly_left) > 0 and len(self.poly_right) > 0:
             self.search_around_poly()
-            left_fitx, right_fitx, ploty = self.fit_poly()
+            self.compute_polynomes()
+            left_fitx, right_fitx, ploty = self.compute_polynom_coordinates()
             self.image_poly_search(warped, left_fitx, right_fitx, ploty)
         else:
             self.find_lane_pixels(warped)
-            left_fitx, right_fitx, ploty = self.fit_poly()
+            self.compute_polynomes()
+            left_fitx, right_fitx, ploty = self.compute_polynom_coordinates()
 
         self.sane_lane(left_fitx, right_fitx)
 
@@ -51,40 +53,25 @@ class PolyFitToLane:
             self.sane_left = left_fitx
         elif np.average(np.abs(left_fitx - self.sane_left)) < threshold:
             self.sane_left = left_fitx
+
         if len(self.sane_right) == 0:
             self.sane_right = right_fitx
         elif np.average(np.abs(right_fitx - self.sane_right)) < threshold:
             self.sane_right = right_fitx
 
     def compute_polynomes(self):
-        leftx = self.nonzerox[self.left_lane_inds]
-        lefty = self.nonzeroy[self.left_lane_inds]
-        rightx = self.nonzerox[self.right_lane_inds]
-        righty = self.nonzeroy[self.right_lane_inds]
-        left_fit = np.polyfit(lefty, leftx, 2)
-        right_fit = np.polyfit(righty, rightx, 2)
+        leftx = self.nonzerox[self.lane_inds_left]
+        lefty = self.nonzeroy[self.lane_inds_left]
+        rightx = self.nonzerox[self.lane_inds_right]
+        righty = self.nonzeroy[self.lane_inds_right]
+        self.poly_left = np.polyfit(lefty, leftx, 2)
+        self.poly_right = np.polyfit(righty, rightx, 2)
 
-    def fit_poly(self):
-        # Fit a second order polynomial to each with np.polyfit()
-        leftx = self.nonzerox[self.left_lane_inds]
-        lefty = self.nonzeroy[self.left_lane_inds]
-        rightx = self.nonzerox[self.right_lane_inds]
-        righty = self.nonzeroy[self.right_lane_inds]
-        left_fit = np.polyfit(lefty, leftx, 2)
-        right_fit = np.polyfit(righty, rightx, 2)
-        ploty = np.linspace(0, self.img_sz[0] - 1, self.img_sz[0])
-
-        mean_fit = np.mean([left_fit, right_fit], axis=0)
-        left_fit = list(left_fit)
-        right_fit = list(right_fit)
-        #left_fit[0] = mean_fit[0]
-        #right_fit[0] = mean_fit[0]
-
+    def compute_polynom_coordinates(self):
         # Calc both polynomials using ploty, left_fit and right_fit
-        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
-        self.prev_left_fit = left_fit
-        self.prev_right_fit = right_fit
+        ploty = np.linspace(0, self.img_sz[0] - 1, self.img_sz[0])
+        left_fitx = self.poly_left[0] * ploty ** 2 + self.poly_left[1] * ploty + self.poly_left[2]
+        right_fitx = self.poly_right[0] * ploty ** 2 + self.poly_right[1] * ploty + self.poly_right[2]
 
         return left_fitx, right_fitx, ploty
 
@@ -103,8 +90,8 @@ class PolyFitToLane:
         img_tmp = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
         window_img = np.zeros_like(img_tmp)
         # Color in left and right line pixels
-        img_tmp[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
-        img_tmp[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
+        img_tmp[self.nonzeroy[self.lane_inds_left], self.nonzerox[self.lane_inds_left]] = [255, 0, 0]
+        img_tmp[self.nonzeroy[self.lane_inds_right], self.nonzerox[self.lane_inds_right]] = [0, 0, 255]
 
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
@@ -129,19 +116,21 @@ class PolyFitToLane:
 
     def search_around_poly(self):
         # Set the area of search based on activated x-values
-        x_left = self.prev_left_fit[0] * (self.nonzeroy ** 2) + \
-                 self.prev_left_fit[1] * self.nonzeroy + \
-                 self.prev_left_fit[2]
-        x_right = self.prev_right_fit[0] * (self.nonzeroy ** 2) + \
-                  self.prev_right_fit[1] * self.nonzeroy + \
-                  self.prev_right_fit[2]
+        x_left = self.poly_left[0] * (self.nonzeroy ** 2) + \
+                 self.poly_left[1] * self.nonzeroy + \
+                 self.poly_left[2]
+        x_right = self.poly_right[0] * (self.nonzeroy ** 2) + \
+                  self.poly_right[1] * self.nonzeroy + \
+                  self.poly_right[2]
 
-        left_roi = (np.min(x_right) > self.nonzerox) & (self.nonzerox < self.img_sz[1]//2)
-        right_roi = (np.max(x_left) < self.nonzerox) & (self.nonzerox > self.img_sz[1]//2)
-        self.left_lane_inds = (self.nonzerox > (x_left - self.margin_poly)) & \
-                         (self.nonzerox < (x_left + self.margin_poly)) & left_roi
-        self.right_lane_inds = (self.nonzerox > (x_right - self.margin_poly)) & \
-                          (self.nonzerox < (x_right + self.margin_poly)) & right_roi
+        #left_roi = (np.min(x_right) > self.nonzerox) & (self.nonzerox < self.img_sz[1]//2 + 100)
+        #right_roi = (np.max(x_left) < self.nonzerox) & (self.nonzerox > self.img_sz[1]//2 - 100)
+        left_roi = (np.min(x_right) + 100 > self.nonzerox)
+        right_roi = (np.max(x_left) - 100 < self.nonzerox)
+        self.lane_inds_left = (self.nonzerox > (x_left - self.margin_poly)) & \
+                              (self.nonzerox < (x_left + self.margin_poly)) & left_roi
+        self.lane_inds_right = (self.nonzerox > (x_right - self.margin_poly)) & \
+                               (self.nonzerox < (x_right + self.margin_poly)) & right_roi
 
     def find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
@@ -160,6 +149,9 @@ class PolyFitToLane:
 
         # Set height of windows - based on nwindows above and image shape
         window_height = np.int(self.img_sz[0] // self.nwindows)
+
+        self.lane_inds_left = []
+        self.lane_inds_right = []
 
         # Step through the windows one by one
         for window in range(self.nwindows):
@@ -186,8 +178,8 @@ class PolyFitToLane:
             good_right_inds = (idx_y_in_window & idx_right_in_window).nonzero()[0]
 
             # Append these indices to the lists
-            self.left_lane_inds.append(good_left_inds)
-            self.right_lane_inds.append(good_right_inds)
+            self.lane_inds_left.append(good_left_inds)
+            self.lane_inds_right.append(good_right_inds)
 
             # If you found > minpix pixels, recenter next window
             # (`right` or `leftx_current`) on their mean position
@@ -198,8 +190,8 @@ class PolyFitToLane:
 
         # Concatenate the arrays of indices (previously was a list of lists of pixels)
         try:
-            self.left_lane_inds = np.concatenate(self.left_lane_inds)
-            self.right_lane_inds = np.concatenate(self.right_lane_inds)
+            self.lane_inds_left = np.concatenate(self.lane_inds_left)
+            self.lane_inds_right = np.concatenate(self.lane_inds_right)
         except ValueError:
             # Avoids an error if the above is not implemented fully
             pass

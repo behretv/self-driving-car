@@ -59,7 +59,7 @@ class Lane:
         color = (255, 255, 255)
         str_left = 'Curvature left={:.2f}m'.format(self.left_curvature)
         str_right = 'Curvature right={:.2f}m'.format(self.right_curvature)
-        str_distance = 'distance={:.2f}m'.format(self.distance)
+        str_distance = 'Distance={:.2f}m'.format(self.distance)
         cv2.putText(img_color, str_left, org=(50, 50), thickness=th, color=color, fontScale=2, fontFace=font)
         cv2.putText(img_color, str_right, org=(50, 100), thickness=th, color=color, fontScale=2, fontFace=font)
         cv2.putText(img_color, str_distance, org=(50, 150), thickness=th, color=color, fontScale=2, fontFace=font)
