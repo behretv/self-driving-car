@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
+    <content url="file://$MODULE_DIR$/../CarND-Traffic-Sign-Classifier-Project">
+      <sourceFolder url="file://$MODULE_DIR$/../CarND-Traffic-Sign-Classifier-Project" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (self-driving-car) (2)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7 (self-driving-car) (3)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
