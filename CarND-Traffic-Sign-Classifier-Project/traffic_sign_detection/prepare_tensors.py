@@ -1,13 +1,12 @@
 """
 File to pre-process data to provide tensors
 """
-import logging
 import enum
+import logging
 import pickle
+
 import numpy as np
-import tensorflow as tf
 from sklearn.preprocessing import LabelBinarizer
-from tensorflow.python.ops.variables import Variable
 
 
 class DataType(enum.Enum):
@@ -38,51 +37,26 @@ class PrepareTensors:
             DataType.TEST: np.array([]),
             DataType.VALID: np.array([])
         }
-        self._feed_dict = {
-            DataType.TRAIN: {},
-            DataType.TEST: {},
-            DataType.VALID: {}
-        }
 
-        self._bias = None
-        self._weights = None
-        self._loss = None
+        self.n_features = 0
+        self.n_labels = 0
 
         for key in DataType:
             self.__import_data(key)
 
-        logging.info("Number of features = %d", len(self.feature[DataType.TRAIN]))
-        logging.info("Number of labels = %d", len(self.label[DataType.TRAIN]))
-
     @property
     def feature(self):
+        max_train = np.max(self._feature[DataType.TRAIN])
+        min_train = np.min(self._feature[DataType.TRAIN])
+        mean_train = np.mean(self._feature[DataType.TRAIN])
+        median_train = np.median(self._feature[DataType.TRAIN])
+        assert len(self._feature) > 0, "Number of features <= 0!"
         return self._feature
 
     @property
     def label(self):
+        assert len(self._label) > 0, "Number of labels <= 0!"
         return self._label
-
-    @property
-    def bias(self):
-        assert isinstance(self._bias, Variable), 'biases must be a TensorFlow variable'
-        return self._bias
-
-    @property
-    def weights(self):
-        assert isinstance(self._weights, Variable), 'weights must be a TensorFlow variable'
-        return self._weights
-
-    @property
-    def loss(self):
-        return self._loss
-
-    @property
-    def feed_dict(self):
-        return self._feed_dict
-
-    @feed_dict.setter
-    def feed_dict(self, value):
-        self._feed_dict = value
 
     def process(self):
         for key in DataType:
@@ -95,36 +69,16 @@ class PrepareTensors:
 
         logging.info("Processing finished!")
 
-        train_features = self.feature[DataType.TRAIN]
-        train_labels = self.label[DataType.TRAIN]
+        self.n_features = self.feature[DataType.TRAIN].shape[1]
+        self.n_labels = self.label[DataType.TRAIN].shape[1]
 
-        n_features = train_features.shape[1]
-        n_labels = train_labels.shape[1]
-
-        print("Number of features =", n_features)
-        print("Number of classes =", n_labels)
-
-        # Problem 2 - Set the features and labels tensors
-        features = tf.placeholder(tf.float32)
-        labels = tf.placeholder(tf.float32)
-
-        # Problem 2 - Set the weights and biases tensors
-        self._weights = tf.Variable(tf.truncated_normal((n_features, n_labels)))
-        self._bias = tf.Variable(tf.zeros(n_labels))
-
-        # Feed dicts for training, validation, and test session
-        for key in DataType:
-            self._feed_dict[key] = {features: self.feature[key], labels: self.label[key]}
-
-        # Linear Function WX + b
-        logits = tf.matmul(features, self.weights) + self.bias
-        prediction = tf.nn.softmax(logits)
-        cross_entropy = -tf.reduce_sum(labels * tf.log(prediction), axis=1)
-        self._loss = tf.reduce_mean(cross_entropy)
+        logging.info("Number of features = %d", self.n_features)
+        logging.info("Number of labels = %d", self.n_labels)
 
     def __pre_process_feature(self, key: DataType):
-        self.__reshape_image_data(key)
-        self.__normalize_grayscale(key)
+        #self.__reshape_image_data(key)
+        #self.__normalize_grayscale(key)
+        pass
 
     def __pre_process_labels(self, key: DataType, encoder):
         self._label[key] = encoder.transform(self._label[key])

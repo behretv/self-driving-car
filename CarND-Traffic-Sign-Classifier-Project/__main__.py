@@ -1,153 +1,192 @@
 import math
+import dask
 import logging
+import pickle
+import random
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.layers import flatten
+from sklearn.utils import shuffle
 from tqdm import tqdm
-from tensorflow.python.ops.variables import Variable
 from traffic_sign_detection.prepare_tensors import PrepareTensors, DataType
+from sklearn.preprocessing import LabelBinarizer
 
 
-def main():
-    logging.basicConfig(level=logging.INFO)
-
-    training_file = "data/train.p"
-    validation_file = "data/valid.p"
-    testing_file = "data/test.p"
-    tensors = PrepareTensors(training_file, testing_file, validation_file)
-    tensors.process()
-    train_features = tensors.feature[DataType.TRAIN]
-    test_features = tensors.feature[DataType.TRAIN]
-    valid_features = tensors.feature[DataType.TRAIN]
-    train_labels = tensors.label[DataType.TRAIN]
-    test_labels = tensors.label[DataType.TRAIN]
-    valid_labels = tensors.label[DataType.TRAIN]
-
-    # Problem 2 - Set the features and labels tensors
-    features = tf.placeholder(tf.float32)
-    labels = tf.placeholder(tf.float32)
-
-    # Feed dicts for training, validation, and test session
-    train_feed_dict = {features: train_features, labels: train_labels}
-    valid_feed_dict = {features: valid_features, labels: valid_labels}
-    test_feed_dict = {features: test_features, labels: test_labels}
-
-    # Linear Function WX + b
-    logits = tf.matmul(features, tensors.weights) + tensors.bias
-
-    prediction = tf.nn.softmax(logits)
-
-    # Cross entropy
-    cross_entropy = -tf.reduce_sum(labels * tf.log(prediction), axis=1)
-
-    # Training loss
-    loss = tf.reduce_mean(cross_entropy)
-
-    # Create an operation that initializes all variables
-    init = tf.global_variables_initializer()
-
-    # Test Cases
+def bias_test(init, loss, train_feed_dict, valid_feed_dict, test_feed_dict, bias):
     with tf.Session() as session:
         session.run(init)
         session.run(loss, feed_dict=train_feed_dict)
         session.run(loss, feed_dict=valid_feed_dict)
         session.run(loss, feed_dict=test_feed_dict)
-        biases_data = session.run(tensors.bias)
+        biases_data = session.run(bias)
 
     assert not np.count_nonzero(biases_data), 'biases must be zeros'
 
     print('Tests Passed!')
 
-    # Determine if the predictions are correct
-    is_correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(labels, 1))
-    # Calculate the accuracy of the predictions
-    accuracy = tf.reduce_mean(tf.cast(is_correct_prediction, tf.float32))
 
-    print('Accuracy function created.')
+def LeNet(x):
+    # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
+    mu = 0
+    sigma = 0.1
 
-    configuration = 2
-    epochs = 3
-    batch_size = 500
-    learning_rate = 0.2
-    # Configuration 1
-    if configuration == 1:
-        epochs = 3
-        batch_size = 1000
-        learning_rate = 0.05
-    elif configuration == 2:
-        epochs = 5
-        batch_size = 800
-        learning_rate = 0.1
-    elif configuration == 3:
-        epochs = 5
-        batch_size = 800
-        learning_rate = 0.1
+    # Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
+    W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma))
+    # B_1 = tf.Variable(tf.truncated_normal(shape=(1, 28, 28, 6), mean=mu, stddev=sigma))
+    B_1 = tf.Variable(tf.zeros(shape=(1, 28, 28, 6)))
+    strides = [1, 1, 1, 1]
+    padding = 'VALID'
+    layer_1 = tf.nn.conv2d(x, W_1, strides=strides, padding=padding) + B_1
 
-    # Gradient Descent
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    # Activation.
+    layer_1 = tf.nn.relu(layer_1)
 
-    # The accuracy measured against the validation set
-    validation_accuracy = 0.0
+    # Pooling. Input = 28x28x6. Output = 14x14x6.
+    k = [1, 2, 2, 1]
+    strides = [1, 2, 2, 1]
+    padding = 'VALID'
+    layer_1 = tf.nn.max_pool(layer_1, k, strides, padding)
 
-    # Measurements use for graphing loss and accuracy
-    log_batch_step = 50
-    batches = []
-    loss_batch = []
-    train_acc_batch = []
-    valid_acc_batch = []
+    # Layer 2: Convolutional. Output = 10x10x16.
+    W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma))
+    # B_2 = tf.Variable(tf.truncated_normal(shape=(1, 10, 10, 16), mean=mu, stddev=sigma))
+    B_2 = tf.Variable(tf.zeros(shape=(1, 10, 10, 16)))
+    strides = [1, 1, 1, 1]
+    padding = 'VALID'
+    layer_2 = tf.nn.conv2d(layer_1, W_2, strides=strides, padding=padding) + B_2
 
-    with tf.Session() as session:
-        session.run(init)
-        batch_count = int(math.ceil(len(train_features) / batch_size))
+    # Activation.
+    layer_2 = tf.nn.relu(layer_2)
 
-        for epoch_i in range(epochs):
+    # Pooling. Input = 10x10x16. Output = 5x5x16.
+    k = [1, 2, 2, 1]
+    strides = [1, 2, 2, 1]
+    padding = 'VALID'
+    layer_2 = tf.nn.max_pool(layer_2, k, strides, padding)
 
-            # Progress bar
-            batches_pbar = tqdm(range(batch_count), desc='Epoch {:>2}/{}'.format(epoch_i + 1, epochs), unit='batches')
+    # Flatten. Input = 5x5x16. Output = 400.
+    fc = flatten(layer_2)
 
-            # The training cycle
-            for batch_i in batches_pbar:
-                # Get a batch of training features and labels
-                batch_start = batch_i * batch_size
-                batch_features = train_features[batch_start:batch_start + batch_size]
-                batch_labels = train_labels[batch_start:batch_start + batch_size]
+    # Layer 3: Fully Connected. Input = 400. Output = 120.
+    W_3 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma))
+    # B_3 = tf.Variable(tf.truncated_normal(shape=(1, 120), mean=mu, stddev=sigma))
+    B_3 = tf.Variable(tf.zeros(shape=(1, 120)))
+    layer_3 = tf.matmul(fc, W_3) + B_3
 
-                # Run optimizer and get loss
-                _, l = session.run(
-                    [optimizer, loss],
-                    feed_dict={features: batch_features, labels: batch_labels})
+    # Activation.
+    layer_3 = tf.nn.relu(layer_3)
 
-                # Log every 50 batches
-                if not batch_i % log_batch_step:
-                    # Calculate Training and Validation accuracy
-                    training_accuracy = session.run(accuracy, feed_dict=train_feed_dict)
-                    validation_accuracy = session.run(accuracy, feed_dict=valid_feed_dict)
+    # Layer 4: Fully Connected. Input = 120. Output = 84.
+    W_4 = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma))
+    # B_4 = tf.Variable(tf.truncated_normal(shape=(1, 84), mean=mu, stddev=sigma))
+    B_4 = tf.Variable(tf.zeros(shape=(1, 84)))
+    layer_4 = tf.matmul(layer_3, W_4) + B_4
 
-                    # Log batches
-                    previous_batch = batches[-1] if batches else 0
-                    batches.append(log_batch_step + previous_batch)
-                    loss_batch.append(l)
-                    train_acc_batch.append(training_accuracy)
-                    valid_acc_batch.append(validation_accuracy)
+    # Activation.
+    layer_4 = tf.nn.relu(layer_4)
 
-            # Check accuracy against Validation data
-            validation_accuracy = session.run(accuracy, feed_dict=valid_feed_dict)
+    # Layer 5: Fully Connected. Input = 84. Output = 43.
+    W_5 = tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma))
+    # B_5 = tf.Variable(tf.truncated_normal(shape=(1, 43), mean=mu, stddev=sigma))
+    B_5 = tf.Variable(tf.zeros(shape=(1, 43)))
+    logits = tf.matmul(layer_4, W_5) + B_5
 
-    loss_plot = plt.subplot(211)
-    loss_plot.set_title('Loss')
-    loss_plot.plot(batches, loss_batch, 'g')
-    loss_plot.set_xlim([batches[0], batches[-1]])
-    acc_plot = plt.subplot(212)
-    acc_plot.set_title('Accuracy')
-    acc_plot.plot(batches, train_acc_batch, 'r', label='Training Accuracy')
-    acc_plot.plot(batches, valid_acc_batch, 'x', label='Validation Accuracy')
-    acc_plot.set_ylim([0, 1.0])
-    acc_plot.set_xlim([batches[0], batches[-1]])
-    acc_plot.legend(loc=4)
-    plt.tight_layout()
+    return logits
+
+
+def evaluate(x_data, y_data, batch_size, accuracy_operation, x, y):
+    num_examples = len(x_data)
+    total_accuracy = 0
+    sess = tf.get_default_session()
+    for offset in range(0, num_examples, batch_size):
+        batch_x, batch_y = x_data[offset:offset + batch_size], y_data[offset:offset + batch_size]
+        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
+        total_accuracy += (accuracy * len(batch_x))
+    return total_accuracy / num_examples
+
+
+def main():
+    print(dask.__version__)
+
+    logging.basicConfig(level=logging.INFO)
+    training_file = "data/train.p"
+    validation_file = "data/valid.p"
+    testing_file = "data/test.p"
+    tensors = PrepareTensors(training_file, testing_file, validation_file)
+    tensors.process()
+    x_train = tensors.feature[DataType.TRAIN]
+    y_train = tensors.label[DataType.TRAIN]
+    X_test = tensors.feature[DataType.TEST]
+    y_test = tensors.label[DataType.TEST]
+    X_valid = tensors.feature[DataType.VALID]
+    y_valid = tensors.label[DataType.VALID]
+
+
+    training_file = 'data/train.p'
+    validation_file = 'data/test.p'
+    testing_file = 'data/valid.p'
+
+    with open(training_file, mode='rb') as f:
+        train = pickle.load(f)
+    with open(validation_file, mode='rb') as f:
+        valid = pickle.load(f)
+    with open(testing_file, mode='rb') as f:
+        test = pickle.load(f)
+
+    x_train, y_train = train['features'], train['labels']
+    x_valid, y_valid = valid['features'], valid['labels']
+    x_test, y_test = test['features'], test['labels']
+
+    index = random.randint(0, len(x_train))
+    image = x_train[index].squeeze()
+
+    plt.imshow(image)
     plt.show()
+    print(y_train[index])
 
-    print('Validation accuracy at {}'.format(validation_accuracy))
+    x_train, y_train = shuffle(x_train, y_train)
+
+    epochs = 10
+    batch_size = 128
+
+    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
+    y = tf.placeholder(tf.int32, None)
+    one_shot_y = tf.one_hot(y, 43)
+
+    learning_rate = 0.001
+
+    logits = LeNet(x)
+
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
+    loss_operation = tf.reduce_mean(cross_entropy)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    training_operation = optimizer.minimize(loss_operation)
+
+    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_shot_y, 1))
+    accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    saver = tf.train.Saver()
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        num_examples = x_train.shape[0]
+
+        print("Training...")
+        print()
+        for i in range(epochs):
+            x_train, y_train = shuffle(x_train, y_train)
+            for offset in range(0, num_examples, batch_size):
+                end = offset + batch_size
+                batch_x, batch_y = x_train[offset:end], y_train[offset:end]
+                sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
+
+            validation_accuracy = evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
+            print("EPOCH {} ...".format(i + 1))
+            print("Validation Accuracy = {:.3f}".format(validation_accuracy))
+            print()
+
+        saver.save(sess, './lenet')
+        print("Model saved")
 
 
 if __name__ == "__main__":
