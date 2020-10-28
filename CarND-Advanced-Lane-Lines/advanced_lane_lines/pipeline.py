@@ -76,7 +76,7 @@ class Pipeline:
             return cv2.warpPerspective(self.img_color, m, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
         # 4 Polynomial fit
-        left_fitx, right_fitx, ploty = self.poly.process(warped)
+        left_fitx, right_fitx, ploty = self.poly.__pre_process_feature(warped)
         if exit_loop == 3:
             return self.poly.get_img()
 
