@@ -12,7 +12,6 @@ from traffic_sign_detection.deep_neural_network import DeepNeuralNetwork
 def main():
     epochs = 10
     batch_size = 128
-    learning_rate = 0.001
 
     model_session_file = 'data/parameters/train_model.ckpt'
     training_file = 'data/input/train.p'
@@ -23,26 +22,16 @@ def main():
 
     # 1 Data handling
     data = DataHandler(training_file, testing_file, validation_file)
-    #data.process()
-    #data.show_random_image()
-    feature_valid = data.feature[DataType.VALID]
-    label_valid = data.label[DataType.VALID]
-    feature_train, label_train = data.get_shuffled_data(DataType.TRAIN)
 
     # 2 Placeholders
     tf_feature = tf.placeholder(tf.float32, (None, 32, 32, 3))
     tf_label = tf.placeholder(tf.int32, None)
 
     # 3 DNN
-    deep_network = DeepNeuralNetwork(tf_feature)
+    deep_network = DeepNeuralNetwork(tf_feature, tf_label, data)
     deep_network.process()
-    logits = deep_network.logits
-    optimizer = deep_network.generate_optimizer(tf_label, data, learning_rate)
-
-    # 4 Optimizers
-    one_shot_y = tf.one_hot(tf_label, data.n_labels)
-    prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_shot_y, 1))
-    cost = tf.reduce_mean(tf.cast(prediction, tf.float32))
+    optimizer = deep_network.generate_optimizer()
+    cost = deep_network.compute_cost()
 
     # 5 Run and save session
     accuracy = run_session(data, batch_size, epochs, optimizer, tf_feature, tf_label, model_session_file, cost)

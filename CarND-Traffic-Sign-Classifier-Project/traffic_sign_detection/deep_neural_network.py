@@ -5,13 +5,17 @@ from tensorflow.contrib.layers import flatten
 
 class DeepNeuralNetwork:
 
-    def __init__(self, tf_features):
+    def __init__(self, tf_features, tf_labels, data):
         self.tf_features = tf_features
+        self.tf_labels = tf_labels
+        self.tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
         self.logits = None
         self._optimizer = None
+        self.learning_rate = 0.001
 
         mu = 0
         sigma = 0.1
+
         self.weights = [
             tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma)),
             tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma)),
@@ -28,12 +32,15 @@ class DeepNeuralNetwork:
             tf.Variable(tf.zeros(shape=(1, 43))),
         ]
 
-    def generate_optimizer(self, tf_label, data, learning_rate):
-        one_shot_y = tf.one_hot(tf_label, data.n_labels)
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=self.logits)
+    def generate_optimizer(self):
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.tf_one_hot_labels, logits=self.logits)
         loss_operation = tf.reduce_mean(cross_entropy)
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         return optimizer.minimize(loss_operation)
+
+    def compute_cost(self):
+        prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.tf_one_hot_labels, 1))
+        return tf.reduce_mean(tf.cast(prediction, tf.float32))
 
     def process(self):
         # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each
