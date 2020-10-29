@@ -35,11 +35,12 @@ def main():
 
     # 3 DNN
     deep_network = DeepNeuralNetwork(tf_feature)
-    logits = deep_network.process()
+    deep_network.process()
+    logits = deep_network.logits
+    optimizer = deep_network.generate_optimizer(tf_label, data, learning_rate)
 
     # 4 Optimizers
     one_shot_y = tf.one_hot(tf_label, data.n_labels)
-    optimizer = define_optimize_function(one_shot_y, logits, learning_rate)
     prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_shot_y, 1))
     cost = tf.reduce_mean(tf.cast(prediction, tf.float32))
 
@@ -90,14 +91,6 @@ def run_session(data, batch_size, epochs, optimizer, tf_feature, tf_label, model
         saver.save(sess, model_session_file)
         print("Model saved")
     return accuracy
-
-
-def define_optimize_function(one_shot_y, logits, learning_rate):
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
-    loss_operation = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    training_operation = optimizer.minimize(loss_operation)
-    return training_operation
 
 
 def evaluate(valid_features, valid_labels, tf_features, tf_labels, cost, tmp_batch_size):

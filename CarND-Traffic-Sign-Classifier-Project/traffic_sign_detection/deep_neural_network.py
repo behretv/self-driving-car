@@ -7,6 +7,8 @@ class DeepNeuralNetwork:
 
     def __init__(self, tf_features):
         self.tf_features = tf_features
+        self.logits = None
+        self._optimizer = None
 
         mu = 0
         sigma = 0.1
@@ -25,6 +27,13 @@ class DeepNeuralNetwork:
             tf.Variable(tf.zeros(shape=(1, 84))),
             tf.Variable(tf.zeros(shape=(1, 43))),
         ]
+
+    def generate_optimizer(self, tf_label, data, learning_rate):
+        one_shot_y = tf.one_hot(tf_label, data.n_labels)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=self.logits)
+        loss_operation = tf.reduce_mean(cross_entropy)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        return optimizer.minimize(loss_operation)
 
     def process(self):
         # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each
@@ -66,6 +75,4 @@ class DeepNeuralNetwork:
         layer_4 = tf.nn.relu(layer_4)
 
         # Layer 5: Fully Connected. Input = 84. Output = 43.
-        logits = tf.matmul(layer_4, self.weights[4]) + self.biases[4]
-
-        return logits
+        self.logits = tf.matmul(layer_4, self.weights[4]) + self.biases[4]
