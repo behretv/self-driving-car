@@ -135,7 +135,7 @@ accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 saver = tf.train.Saver()
 
 
-def evaluate(valid_features, valid_labels, x, y):
+def evaluate(valid_features, valid_labels, tf_features, tf_labels):
     n_features = len(valid_features)
     total_accuracy = 0
     tmp_sess = tf.get_default_session()
@@ -143,7 +143,7 @@ def evaluate(valid_features, valid_labels, x, y):
         i_end = i_start + BATCH_SIZE
         tmp_features = valid_features[i_start:i_end]
         tmp_labels = valid_labels[i_start:i_end]
-        tmp_accuracy = tmp_sess.run(accuracy_operation, feed_dict={x: tmp_features, y: tmp_labels})
+        tmp_accuracy = tmp_sess.run(accuracy_operation, feed_dict={tf_features: tmp_features, tf_labels: tmp_labels})
         total_accuracy += (tmp_accuracy * len(tmp_features))
     return total_accuracy / n_features
 
