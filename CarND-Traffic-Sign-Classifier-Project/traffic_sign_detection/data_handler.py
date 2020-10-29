@@ -45,9 +45,9 @@ class DataHandler:
         for key in DataType:
             self.__import_data(key)
 
-        self._n_features = len(self.feature[DataType.TRAIN])
+        self._n_features = self.feature[DataType.TRAIN].shape[1:3]
         self._n_labels = len(set(self.label[DataType.TRAIN]))
-        logging.info("Number of features = %d", self.n_features)
+        logging.info("Number of features = %d", self.n_features[0]*self.n_features[1])
         logging.info("Number of labels = %d", self.n_labels)
 
     @property
