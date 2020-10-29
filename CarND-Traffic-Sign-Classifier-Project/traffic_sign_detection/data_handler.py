@@ -2,8 +2,10 @@
 File to pre-process data to provide tensors
 """
 import enum
-import logging
 import pickle
+import matplotlib.pyplot as plt
+import random
+import logging
 
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
@@ -15,7 +17,7 @@ class DataType(enum.Enum):
     VALID = 'valid'
 
 
-class PrepareTensors:
+class DataHandler:
     """
     Class to process pickled data into tensors
     """
@@ -38,18 +40,16 @@ class PrepareTensors:
             DataType.VALID: np.array([])
         }
 
-        self.n_features = 0
-        self.n_labels = 0
-
         for key in DataType:
             self.__import_data(key)
 
+        self.n_features = len(self.feature[DataType.TRAIN])
+        self._n_labels = len(set(self.label[DataType.TRAIN]))
+        logging.info("Number of features = %d", self.n_features)
+        logging.info("Number of labels = %d", self.n_labels)
+
     @property
     def feature(self):
-        max_train = np.max(self._feature[DataType.TRAIN])
-        min_train = np.min(self._feature[DataType.TRAIN])
-        mean_train = np.mean(self._feature[DataType.TRAIN])
-        median_train = np.median(self._feature[DataType.TRAIN])
         assert len(self._feature) > 0, "Number of features <= 0!"
         return self._feature
 
@@ -57,6 +57,10 @@ class PrepareTensors:
     def label(self):
         assert len(self._label) > 0, "Number of labels <= 0!"
         return self._label
+
+    @property
+    def n_labels(self):
+        return self._n_labels
 
     def process(self):
         for key in DataType:
@@ -69,11 +73,15 @@ class PrepareTensors:
 
         logging.info("Processing finished!")
 
-        self.n_features = self.feature[DataType.TRAIN].shape[1]
-        self.n_labels = self.label[DataType.TRAIN].shape[1]
+    def show_random_image(self):
+        feature_train = self.feature[DataType.TRAIN]
+        label_train = self.label[DataType.TRAIN]
+        index = random.randint(0, len(feature_train))
+        image = feature_train[index].squeeze()
 
-        logging.info("Number of features = %d", self.n_features)
-        logging.info("Number of labels = %d", self.n_labels)
+        plt.imshow(image)
+        plt.title("Label " + str(label_train[index]))
+        plt.show()
 
     def __pre_process_feature(self, key: DataType):
         self.__reshape_image_data(key)
@@ -103,7 +111,7 @@ class PrepareTensors:
     def __reshape_image_data(self, key: DataType):
         list_gray = []
         for rgb in self._feature[key]:
-            list_gray.append(PrepareTensors.__rgb2gray(rgb).flatten())
+            list_gray.append(DataHandler.__rgb2gray(rgb).flatten())
         self._feature[key] = np.array(list_gray)
 
     def __normalize_grayscale(self, key: DataType):

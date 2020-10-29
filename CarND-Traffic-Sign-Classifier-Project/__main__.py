@@ -1,15 +1,12 @@
 # Load pickled data
 import math
-import pickle
-import matplotlib.pyplot as plt
-import random
 import logging
 import tensorflow as tf
 from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
 from tqdm import tqdm
 
-from traffic_sign_detection.prepare_tensors import PrepareTensors, DataType
+from traffic_sign_detection.data_handler import DataHandler, DataType
 
 EPOCHS = 10
 BATCH_SIZE = 128
@@ -18,43 +15,26 @@ LABEL = tf.placeholder(tf.int32, None)
 
 
 def main():
+    learning_rate = 0.001
+
     training_file = 'data/train.p'
     validation_file = 'data/test.p'
     testing_file = 'data/valid.p'
 
     logging.basicConfig(level=logging.INFO)
-    tensors = PrepareTensors(training_file, testing_file, validation_file)
+    data = DataHandler(training_file, testing_file, validation_file)
     # tensors.process()
-    X_train = tensors.feature[DataType.TRAIN]
-    y_train = tensors.label[DataType.TRAIN]
-    X_test = tensors.feature[DataType.TEST]
-    y_test = tensors.label[DataType.TEST]
-    X_valid = tensors.feature[DataType.VALID]
-    y_valid = tensors.label[DataType.VALID]
+    #data.show_random_image()
+    feature_train = data.feature[DataType.TRAIN]
+    label_train = data.label[DataType.TRAIN]
+    feature_test = data.feature[DataType.TEST]
+    label_test = data.label[DataType.TEST]
+    feature_valid = data.feature[DataType.VALID]
+    label_valid = data.label[DataType.VALID]
 
-    # Total number of images: 51839
-    n_train = 34799
+    feature_train, label_train = shuffle(feature_train, label_train)
 
-    n_validation = 12630
-
-    n_test = 4410
-
-    image_shape = [32, 32]
-
-    n_classes = 43
-
-    index = random.randint(0, len(X_train))
-    image = X_train[index].squeeze()
-
-    plt.imshow(image)
-    plt.show()
-    print(y_train[index])
-
-    X_train, y_train = shuffle(X_train, y_train)
-
-    one_shot_y = tf.one_hot(LABEL, 43)
-
-    learning_rate = 0.001
+    one_shot_y = tf.one_hot(LABEL, data.n_labels)
 
     logits = le_net_5(FEATURE)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
@@ -68,9 +48,9 @@ def main():
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        num_examples = X_train.shape[0]
+        num_examples = feature_train.shape[0]
 
-        batch_count = int(math.ceil(len(X_train) / BATCH_SIZE))
+        batch_count = int(math.ceil(len(feature_train) / BATCH_SIZE))
 
         print("Training...")
         accuracy = 0.0
@@ -81,15 +61,15 @@ def main():
                                 desc='Previous Accuracy={:.3f} Epoch {:>2}/{}'.format(accuracy, i + 1, EPOCHS),
                                 unit='batches')
 
-            X_train, y_train = shuffle(X_train, y_train)
+            feature_train, label_train = shuffle(feature_train, label_train)
             for batch_i in batches_pbar:
                 batch_start = batch_i * BATCH_SIZE
                 batch_end = batch_start + BATCH_SIZE
-                batch_x = X_train[batch_start:batch_end]
-                batch_y = y_train[batch_start:batch_end]
+                batch_x = feature_train[batch_start:batch_end]
+                batch_y = label_train[batch_start:batch_end]
                 sess.run(training_operation, feed_dict={FEATURE: batch_x, LABEL: batch_y})
 
-            accuracy = evaluate(X_valid, y_valid, FEATURE, LABEL, accuracy_operation)
+            accuracy = evaluate(feature_valid, label_valid, FEATURE, LABEL, accuracy_operation)
 
         print("Final Accuracy = {:.3f}".format(accuracy))
         saver.save(sess, './lenet')
