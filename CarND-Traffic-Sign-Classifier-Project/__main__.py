@@ -135,7 +135,7 @@ accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 saver = tf.train.Saver()
 
 
-def evaluate(valid_features, valid_labels):
+def evaluate(valid_features, valid_labels, x, y):
     n_features = len(valid_features)
     total_accuracy = 0
     tmp_sess = tf.get_default_session()
@@ -143,7 +143,7 @@ def evaluate(valid_features, valid_labels):
         i_end = i_start + BATCH_SIZE
         tmp_features = valid_features[i_start:i_end]
         tmp_labels = valid_labels[i_start:i_end]
-        tmp_accuracy = tmp_sess.run(accuracy_operation, feed_dict={FEATURE: tmp_features, LABEL: tmp_labels})
+        tmp_accuracy = tmp_sess.run(accuracy_operation, feed_dict={x: tmp_features, y: tmp_labels})
         total_accuracy += (tmp_accuracy * len(tmp_features))
     return total_accuracy / n_features
 
@@ -171,7 +171,7 @@ with tf.Session() as sess:
             batch_y = y_train[batch_start:batch_end]
             sess.run(training_operation, feed_dict={FEATURE: batch_x, LABEL: batch_y})
 
-        accuracy = evaluate(X_valid, y_valid)
+        accuracy = evaluate(X_valid, y_valid, FEATURE, LABEL)
 
     print("Final Accuracy = {:.3f}".format(accuracy))
     saver.save(sess, './lenet')
