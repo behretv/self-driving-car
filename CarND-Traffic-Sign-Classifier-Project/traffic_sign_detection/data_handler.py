@@ -9,6 +9,8 @@ import logging
 
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.utils import shuffle
+from sklearn import utils
 
 
 class DataType(enum.Enum):
@@ -43,7 +45,7 @@ class DataHandler:
         for key in DataType:
             self.__import_data(key)
 
-        self.n_features = len(self.feature[DataType.TRAIN])
+        self._n_features = len(self.feature[DataType.TRAIN])
         self._n_labels = len(set(self.label[DataType.TRAIN]))
         logging.info("Number of features = %d", self.n_features)
         logging.info("Number of labels = %d", self.n_labels)
@@ -61,6 +63,15 @@ class DataHandler:
     @property
     def n_labels(self):
         return self._n_labels
+
+    @property
+    def n_features(self):
+        return self._n_features
+
+    def get_shuffled_data(self, key: DataType):
+        feature_train = self.feature[key]
+        label_train = self.label[key]
+        return utils.shuffle(feature_train, label_train)
 
     def process(self):
         for key in DataType:
