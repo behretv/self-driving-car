@@ -3,13 +3,15 @@ File to pre-process data to provide tensors
 """
 import enum
 import pickle
-import matplotlib.pyplot as plt
 import random
 import logging
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 from sklearn.preprocessing import LabelBinarizer
 from sklearn import utils
+from traffic_sign_detection.file_handler import FileHandler
 
 
 class DataType(enum.Enum):
@@ -23,12 +25,12 @@ class DataHandler:
     Class to process pickled data into tensors
     """
 
-    def __init__(self, train_file, test_file, valid_file):
+    def __init__(self, files: FileHandler):
         self.logger = logging.Logger
         self.file = {
-            DataType.TRAIN: train_file,
-            DataType.TEST: test_file,
-            DataType.VALID: valid_file
+            DataType.TRAIN: files.training_file,
+            DataType.TEST: files.testing_file,
+            DataType.VALID: files.validation_file
         }
         self._feature = {
             DataType.TRAIN: np.array([]),

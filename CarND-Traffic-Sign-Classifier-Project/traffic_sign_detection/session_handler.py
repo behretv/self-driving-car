@@ -7,16 +7,18 @@ from sklearn.utils import shuffle
 from tqdm import tqdm
 
 from traffic_sign_detection.data_handler import DataType
+from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
+from traffic_sign_detection.file_handler import FileHandler
 
 
 class SessionHandler:
 
-    def __init__(self, data, cost, session_file):
+    def __init__(self, files: FileHandler, data, cost, hyper_params: HyperParameterHandler):
         self.data = data
-        self.batch_size = 128
-        self.epochs = 10
+        self.batch_size = hyper_params.batch_size
+        self.epochs = hyper_params.epochs
         self.cost = cost
-        self.file = session_file
+        self.file = files.model_session_file
 
     def train(self, optimizer, tf_feature, tf_label):
         feature_train, label_train = self.data.get_shuffled_data(DataType.TRAIN)
