@@ -1,17 +1,22 @@
 """ Class to parametrize and define a deep neural network """
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
+from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 
 
 class DeepNeuralNetwork:
 
-    def __init__(self, tf_features, tf_labels, data):
-        self.tf_features = tf_features
-        self.tf_labels = tf_labels
+    def __init__(self, data, hyper_params: HyperParameterHandler):
+        # Properties which can be assigned by the input
+        self.tf_features = tf.placeholder(tf.float32, (None, 32, 32, 3))
+        self.tf_labels = tf.placeholder(tf.int32, None)
         self._tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
+        self._learning_rate = hyper_params.learning_rate
+
+        # Properties which have to be computed
+        self._cost = None
         self._logits = None
         self._optimizer = None
-        self._learning_rate = 0.001
 
         mu = 0
         sigma = 0.1
@@ -32,20 +37,27 @@ class DeepNeuralNetwork:
             tf.Variable(tf.zeros(shape=(1, 43))),
         ]
 
+    @property
+    def optimizer(self):
+        assert self._optimizer is not None
+        return self._optimizer
+
+    @property
+    def cost(self):
+        assert self._cost is not None
+        return self._cost
+
     def generate_optimizer(self):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self._tf_one_hot_labels, logits=self._logits)
         loss_operation = tf.reduce_mean(cross_entropy)
         optimizer = tf.train.AdamOptimizer(learning_rate=self._learning_rate)
-        return optimizer.minimize(loss_operation)
+        self._optimizer = optimizer.minimize(loss_operation)
 
     def compute_cost(self):
         prediction = tf.equal(tf.argmax(self._logits, 1), tf.argmax(self._tf_one_hot_labels, 1))
-        return tf.reduce_mean(tf.cast(prediction, tf.float32))
+        self._cost = tf.reduce_mean(tf.cast(prediction, tf.float32))
 
-    def process(self):
-        # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each
-        # layer
-
+    def generate_network(self):
         # Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
         strides = [1, 1, 1, 1]
         padding = 'VALID'

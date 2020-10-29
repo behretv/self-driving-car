@@ -3,7 +3,7 @@
 
 class HyperParameterHandler:
     def __init__(self):
-        self._learning_rate = 0.0001
+        self._learning_rate = 0.001
         self._epochs = 10
         self._batch_size = 128
 

@@ -6,21 +6,27 @@ import tensorflow as tf
 from sklearn.utils import shuffle
 from tqdm import tqdm
 
-from traffic_sign_detection.data_handler import DataType
+from traffic_sign_detection.data_handler import DataType, DataHandler
 from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 from traffic_sign_detection.file_handler import FileHandler
+from traffic_sign_detection.deep_neural_network import DeepNeuralNetwork
 
 
 class SessionHandler:
 
-    def __init__(self, files: FileHandler, data, cost, hyper_params: HyperParameterHandler):
+    def __init__(self,
+                 files: FileHandler,
+                 data: DataHandler,
+                 dnn: DeepNeuralNetwork,
+                 hyper_params: HyperParameterHandler):
+
         self.data = data
+        self.dnn = dnn
         self.batch_size = hyper_params.batch_size
         self.epochs = hyper_params.epochs
-        self.cost = cost
         self.file = files.model_session_file
 
-    def train(self, optimizer, tf_feature, tf_label):
+    def train(self):
         feature_train, label_train = self.data.get_shuffled_data(DataType.TRAIN)
 
         saver = tf.train.Saver()
@@ -44,15 +50,30 @@ class SessionHandler:
                     batch_end = batch_start + self.batch_size
                     batch_x = feature_train[batch_start:batch_end]
                     batch_y = label_train[batch_start:batch_end]
-                    sess.run(optimizer, feed_dict={tf_feature: batch_x, tf_label: batch_y})
+                    sess.run(self.dnn.optimizer, feed_dict={self.dnn.tf_features: batch_x, self.dnn.tf_labels: batch_y})
 
-                accuracy = self.validate(tf_feature, tf_label)
+                    '''
+                    # Log every 50 batches
+                    if not batch_i % log_batch_step:
+                        # Calculate Training and Validation accuracy
+                        training_accuracy = sess.run(accuracy, feed_dict=train_feed_dict)
+                        validation_accuracy = sess.run(accuracy, feed_dict=valid_feed_dict)
+
+                        # Log batches
+                        previous_batch = batches[-1] if batches else 0
+                        batches.append(log_batch_step + previous_batch)
+                        loss_batch.append(l)
+                        train_acc_batch.append(training_accuracy)
+                        valid_acc_batch.append(validation_accuracy)
+                    '''
+
+                accuracy = self.validate()
 
             saver.save(sess, self.file)
             print("Model saved")
         return accuracy
 
-    def validate(self, tf_features, tf_labels):
+    def validate(self):
         feature_valid, label_valid = self.data.get_shuffled_data(DataType.VALID)
         n_features = len(feature_valid)
 
@@ -62,16 +83,18 @@ class SessionHandler:
             i_end = i_start + self.batch_size
             tmp_features = feature_valid[i_start:i_end]
             tmp_labels = label_valid[i_start:i_end]
-            tmp_accuracy = tmp_sess.run(self.cost, feed_dict={tf_features: tmp_features, tf_labels: tmp_labels})
+            tmp_accuracy = tmp_sess.run(self.dnn.cost,
+                                        feed_dict={self.dnn.tf_features: tmp_features, self.dnn.tf_labels: tmp_labels})
             total_accuracy += (tmp_accuracy * len(tmp_features))
         return total_accuracy / n_features
 
-    def test(self, tf_feature, tf_label):
+    def test(self):
         # Runs saved session
         saver = tf.train.Saver()
         feature_test, label_test = self.data.get_shuffled_data(DataType.TEST)
         with tf.Session() as sess:
             saver.restore(sess, self.file)
-            test_accuracy = sess.run(self.cost, feed_dict={tf_feature: feature_test, tf_label: label_test})
+            test_accuracy = sess.run(self.dnn.cost,
+                                     feed_dict={self.dnn.tf_features: feature_test, self.dnn.tf_labels: label_test})
 
         return test_accuracy
