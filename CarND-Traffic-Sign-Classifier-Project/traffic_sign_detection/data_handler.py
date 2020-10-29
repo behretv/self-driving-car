@@ -9,7 +9,6 @@ import logging
 
 import numpy as np
 from sklearn.preprocessing import LabelBinarizer
-from sklearn.utils import shuffle
 from sklearn import utils
 
 
