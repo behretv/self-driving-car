@@ -76,9 +76,8 @@ class PrepareTensors:
         logging.info("Number of labels = %d", self.n_labels)
 
     def __pre_process_feature(self, key: DataType):
-        #self.__reshape_image_data(key)
-        #self.__normalize_grayscale(key)
-        pass
+        self.__reshape_image_data(key)
+        self.__normalize_grayscale(key)
 
     def __pre_process_labels(self, key: DataType, encoder):
         self._label[key] = encoder.transform(self._label[key])

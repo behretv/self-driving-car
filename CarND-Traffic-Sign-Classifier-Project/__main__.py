@@ -1,29 +1,52 @@
+# Load pickled data
 import math
-import dask
-import logging
 import pickle
-import random
 import matplotlib.pyplot as plt
-import numpy as np
+import random
+import logging
 import tensorflow as tf
-from tensorflow.contrib.layers import flatten
 from sklearn.utils import shuffle
+from tensorflow.contrib.layers import flatten
 from tqdm import tqdm
+
 from traffic_sign_detection.prepare_tensors import PrepareTensors, DataType
-from sklearn.preprocessing import LabelBinarizer
 
+training_file = 'data/train.p'
+validation_file = 'data/test.p'
+testing_file = 'data/valid.p'
 
-def bias_test(init, loss, train_feed_dict, valid_feed_dict, test_feed_dict, bias):
-    with tf.Session() as session:
-        session.run(init)
-        session.run(loss, feed_dict=train_feed_dict)
-        session.run(loss, feed_dict=valid_feed_dict)
-        session.run(loss, feed_dict=test_feed_dict)
-        biases_data = session.run(bias)
+logging.basicConfig(level=logging.INFO)
+tensors = PrepareTensors(training_file, testing_file, validation_file)
+# tensors.process()
+X_train = tensors.feature[DataType.TRAIN]
+y_train = tensors.label[DataType.TRAIN]
+X_test = tensors.feature[DataType.TEST]
+y_test = tensors.label[DataType.TEST]
+X_valid = tensors.feature[DataType.VALID]
+y_valid = tensors.label[DataType.VALID]
 
-    assert not np.count_nonzero(biases_data), 'biases must be zeros'
+# Total number of images: 51839
+n_train = 34799
 
-    print('Tests Passed!')
+n_validation = 12630
+
+n_test = 4410
+
+image_shape = [32, 32]
+
+n_classes = 43
+
+index = random.randint(0, len(X_train))
+image = X_train[index].squeeze()
+
+plt.imshow(image)
+plt.show()
+print(y_train[index])
+
+X_train, y_train = shuffle(X_train, y_train)
+
+EPOCHS = 10
+BATCH_SIZE = 128
 
 
 def LeNet(x):
@@ -95,99 +118,58 @@ def LeNet(x):
     return logits
 
 
-def evaluate(x_data, y_data, batch_size, accuracy_operation, x, y):
-    num_examples = len(x_data)
+x = tf.placeholder(tf.float32, (None, 32, 32, 3))
+y = tf.placeholder(tf.int32, None)
+one_shot_y = tf.one_hot(y, 43)
+
+learning_rate = 0.001
+
+logits = LeNet(x)
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
+loss_operation = tf.reduce_mean(cross_entropy)
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+training_operation = optimizer.minimize(loss_operation)
+
+correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_shot_y, 1))
+accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+saver = tf.train.Saver()
+
+
+def evaluate(X_data, y_data):
+    num_examples = len(X_data)
     total_accuracy = 0
     sess = tf.get_default_session()
-    for offset in range(0, num_examples, batch_size):
-        batch_x, batch_y = x_data[offset:offset + batch_size], y_data[offset:offset + batch_size]
+    for offset in range(0, num_examples, BATCH_SIZE):
+        batch_x, batch_y = X_data[offset:offset + BATCH_SIZE], y_data[offset:offset + BATCH_SIZE]
         accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
         total_accuracy += (accuracy * len(batch_x))
     return total_accuracy / num_examples
 
 
-def main():
-    print(dask.__version__)
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    num_examples = X_train.shape[0]
 
-    logging.basicConfig(level=logging.INFO)
-    training_file = "data/train.p"
-    validation_file = "data/valid.p"
-    testing_file = "data/test.p"
-    tensors = PrepareTensors(training_file, testing_file, validation_file)
-    tensors.process()
-    x_train = tensors.feature[DataType.TRAIN]
-    y_train = tensors.label[DataType.TRAIN]
-    X_test = tensors.feature[DataType.TEST]
-    y_test = tensors.label[DataType.TEST]
-    X_valid = tensors.feature[DataType.VALID]
-    y_valid = tensors.label[DataType.VALID]
+    batch_count = int(math.ceil(len(X_train) / BATCH_SIZE))
 
+    print("Training...")
+    accuracy = 0.0
+    for i in range(EPOCHS):
 
-    training_file = 'data/train.p'
-    validation_file = 'data/test.p'
-    testing_file = 'data/valid.p'
+        # Progress bar
+        batches_pbar = tqdm(range(batch_count),
+                            desc='Previous Accuracy={:.3f} Epoch {:>2}/{}'.format(accuracy, i + 1, EPOCHS),
+                            unit='batches')
 
-    with open(training_file, mode='rb') as f:
-        train = pickle.load(f)
-    with open(validation_file, mode='rb') as f:
-        valid = pickle.load(f)
-    with open(testing_file, mode='rb') as f:
-        test = pickle.load(f)
+        X_train, y_train = shuffle(X_train, y_train)
+        for batch_i in batches_pbar:
+            batch_start = batch_i * BATCH_SIZE
+            batch_end = batch_start + BATCH_SIZE
+            batch_x, batch_y = X_train[batch_start:batch_end], y_train[batch_start:batch_end]
+            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
-    x_train, y_train = train['features'], train['labels']
-    x_valid, y_valid = valid['features'], valid['labels']
-    x_test, y_test = test['features'], test['labels']
+        accuracy = evaluate(X_valid, y_valid)
 
-    index = random.randint(0, len(x_train))
-    image = x_train[index].squeeze()
-
-    plt.imshow(image)
-    plt.show()
-    print(y_train[index])
-
-    x_train, y_train = shuffle(x_train, y_train)
-
-    epochs = 10
-    batch_size = 128
-
-    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
-    y = tf.placeholder(tf.int32, None)
-    one_shot_y = tf.one_hot(y, 43)
-
-    learning_rate = 0.001
-
-    logits = LeNet(x)
-
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
-    loss_operation = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    training_operation = optimizer.minimize(loss_operation)
-
-    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_shot_y, 1))
-    accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    saver = tf.train.Saver()
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        num_examples = x_train.shape[0]
-
-        print("Training...")
-        print()
-        for i in range(epochs):
-            x_train, y_train = shuffle(x_train, y_train)
-            for offset in range(0, num_examples, batch_size):
-                end = offset + batch_size
-                batch_x, batch_y = x_train[offset:end], y_train[offset:end]
-                sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
-
-            validation_accuracy = evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
-            print("EPOCH {} ...".format(i + 1))
-            print("Validation Accuracy = {:.3f}".format(validation_accuracy))
-            print()
-
-        saver.save(sess, './lenet')
-        print("Model saved")
-
-
-if __name__ == "__main__":
-    main()
+    print("Final Accuracy = {:.3f}".format(accuracy))
+    saver.save(sess, './lenet')
+    print("Model saved")
