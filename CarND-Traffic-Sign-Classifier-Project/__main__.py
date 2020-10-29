@@ -47,9 +47,11 @@ X_train, y_train = shuffle(X_train, y_train)
 
 EPOCHS = 10
 BATCH_SIZE = 128
+FEATURE = tf.placeholder(tf.float32, (None, 32, 32, 3))
+LABEL = tf.placeholder(tf.int32, None)
 
 
-def LeNet(x):
+def le_net_5(x):
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
     mu = 0
     sigma = 0.1
@@ -118,13 +120,11 @@ def LeNet(x):
     return logits
 
 
-x = tf.placeholder(tf.float32, (None, 32, 32, 3))
-y = tf.placeholder(tf.int32, None)
-one_shot_y = tf.one_hot(y, 43)
+one_shot_y = tf.one_hot(LABEL, 43)
 
 learning_rate = 0.001
 
-logits = LeNet(x)
+logits = le_net_5(FEATURE)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_shot_y, logits=logits)
 loss_operation = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -135,15 +135,17 @@ accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 saver = tf.train.Saver()
 
 
-def evaluate(X_data, y_data):
-    num_examples = len(X_data)
+def evaluate(valid_features, valid_labels):
+    n_features = len(valid_features)
     total_accuracy = 0
-    sess = tf.get_default_session()
-    for offset in range(0, num_examples, BATCH_SIZE):
-        batch_x, batch_y = X_data[offset:offset + BATCH_SIZE], y_data[offset:offset + BATCH_SIZE]
-        accuracy = sess.run(accuracy_operation, feed_dict={x: batch_x, y: batch_y})
-        total_accuracy += (accuracy * len(batch_x))
-    return total_accuracy / num_examples
+    tmp_sess = tf.get_default_session()
+    for i_start in range(0, n_features, BATCH_SIZE):
+        i_end = i_start + BATCH_SIZE
+        tmp_features = valid_features[i_start:i_end]
+        tmp_labels = valid_labels[i_start:i_end]
+        tmp_accuracy = tmp_sess.run(accuracy_operation, feed_dict={FEATURE: tmp_features, LABEL: tmp_labels})
+        total_accuracy += (tmp_accuracy * len(tmp_features))
+    return total_accuracy / n_features
 
 
 with tf.Session() as sess:
@@ -165,8 +167,9 @@ with tf.Session() as sess:
         for batch_i in batches_pbar:
             batch_start = batch_i * BATCH_SIZE
             batch_end = batch_start + BATCH_SIZE
-            batch_x, batch_y = X_train[batch_start:batch_end], y_train[batch_start:batch_end]
-            sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
+            batch_x = X_train[batch_start:batch_end]
+            batch_y = y_train[batch_start:batch_end]
+            sess.run(training_operation, feed_dict={FEATURE: batch_x, LABEL: batch_y})
 
         accuracy = evaluate(X_valid, y_valid)
 
