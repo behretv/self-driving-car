@@ -3,7 +3,8 @@
 
 class FileHandler:
     def __init__(self):
-        self.model_session_file = 'data/parameters/train_model.ckpt'
-        self.training_file = 'data/input/train.p'
-        self.validation_file = 'data/input/test.p'
-        self.testing_file = 'data/input/valid.p'
+        self.hyper_parameter = 'parameter/hyper.json'
+        self.model_file = 'parameter/train_model.ckpt'
+        self.training_file = 'data/train.p'
+        self.validation_file = 'data/test.p'
+        self.testing_file = 'data/valid.p'

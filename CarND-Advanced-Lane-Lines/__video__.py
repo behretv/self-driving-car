@@ -10,7 +10,7 @@ images = glob.glob('./camera_cal/calibration*.jpg')
 mtx, dist, img = camera_calibration(images)
 
 #################
-# Load video data
+# Load video parameter
 video_name = './test_videos/project_video.mp4'
 video_clip = VideoFileClip(video_name)
 

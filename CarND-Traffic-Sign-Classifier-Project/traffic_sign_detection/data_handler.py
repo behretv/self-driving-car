@@ -1,5 +1,5 @@
 """
-File to pre-process data to provide tensors
+File to pre-process parameter to provide tensors
 """
 import enum
 import pickle
@@ -22,7 +22,7 @@ class DataType(enum.Enum):
 
 class DataHandler:
     """
-    Class to process pickled data into tensors
+    Class to process pickled parameter into tensors
     """
 
     def __init__(self, files: FileHandler):
@@ -69,6 +69,9 @@ class DataHandler:
     def n_features(self):
         return self._n_features
 
+    def sample_size(self, key):
+        return len(self.feature[key])
+
     def get_shuffled_data(self, key: DataType):
         feature_train = self.feature[key]
         label_train = self.label[key]
@@ -111,8 +114,7 @@ class DataHandler:
         self._feature[key] = data['features']
         self._label[key] = data['labels']
 
-        n_labels = len(self._label[key])
-        logging.info("Number of {} examples ={}".format(key.value, n_labels))
+        logging.info("Number of {} examples ={}".format(key.value, self.sample_size(key)))
 
     @staticmethod
     def __rgb2gray(rgb):
@@ -128,9 +130,9 @@ class DataHandler:
 
     def __normalize_grayscale(self, key: DataType):
         """
-        Normalize the image data with Min-Max scaling to a range of [0.1, 0.9]
+        Normalize the image parameter with Min-Max scaling to a range of [0.1, 0.9]
         :param key: 'test', 'train' or 'valid'
-        :return: Normalized image data
+        :return: Normalized image parameter
         """
         a = 0.1
         b = 0.9

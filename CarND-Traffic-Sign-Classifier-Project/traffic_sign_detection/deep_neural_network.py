@@ -6,12 +6,12 @@ from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 
 class DeepNeuralNetwork:
 
-    def __init__(self, data, hyper_params: HyperParameterHandler):
+    def __init__(self, data, hyper: HyperParameterHandler):
         # Properties which can be assigned by the input
         self.tf_features = tf.placeholder(tf.float32, (None, 32, 32, 3))
         self.tf_labels = tf.placeholder(tf.int32, None)
         self._tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
-        self._learning_rate = hyper_params.learning_rate
+        self._learning_rate = hyper.parameter.learning_rate
 
         # Properties which have to be computed
         self._cost = None

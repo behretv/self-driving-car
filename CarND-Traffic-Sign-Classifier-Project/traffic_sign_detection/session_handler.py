@@ -18,13 +18,13 @@ class SessionHandler:
                  files: FileHandler,
                  data: DataHandler,
                  dnn: DeepNeuralNetwork,
-                 hyper_params: HyperParameterHandler):
+                 hyper: HyperParameterHandler):
 
         self.data = data
         self.dnn = dnn
-        self.batch_size = hyper_params.batch_size
-        self.epochs = hyper_params.epochs
-        self.file = files.model_session_file
+        self.batch_size = hyper.parameter.batch_size
+        self.epochs = hyper.parameter.epochs
+        self.file = files.model_file
 
     def train(self):
         feature_train, label_train = self.data.get_shuffled_data(DataType.TRAIN)

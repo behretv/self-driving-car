@@ -261,7 +261,7 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
-# profiling data
+# profiling parameter
 .prof
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
