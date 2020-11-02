@@ -4,7 +4,7 @@ from tensorflow.contrib.layers import flatten
 from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 
 
-class DeepNeuralNetwork:
+class ConvolutionalNeuralNetwork:
 
     def __init__(self, data, hyper: HyperParameterHandler):
         # Properties which can be assigned by the input
@@ -91,12 +91,12 @@ class DeepNeuralNetwork:
         # Layer 3: Fully Connected. Input = 400. Output = 120.
         layer_3 = tf.matmul(fc, self._weights[2]) + self._biases[2]
         layer_3 = tf.nn.relu(layer_3)
-        layer_3 = tf.nn.dropout(layer_3, keep_prob=self.tf_keep_prob)
+        #layer_3 = tf.nn.dropout(layer_3, keep_prob=self.tf_keep_prob)
 
         # Layer 4: Fully Connected. Input = 120. Output = 84.
         layer_4 = tf.matmul(layer_3, self._weights[3]) + self._biases[3]
         layer_4 = tf.nn.relu(layer_4)
-        layer_4 = tf.nn.dropout(layer_4, keep_prob=self.tf_keep_prob)
+        #layer_4 = tf.nn.dropout(layer_4, keep_prob=self.tf_keep_prob)
 
         # Layer 5: Fully Connected. Input = 84. Output = 43.
         self._logits = tf.matmul(layer_4, self._weights[4]) + self._biases[4]

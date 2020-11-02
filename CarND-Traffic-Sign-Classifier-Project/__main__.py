@@ -1,7 +1,7 @@
 import logging
 
 from traffic_sign_detection.data_handler import DataHandler, DataType
-from traffic_sign_detection.deep_neural_network import DeepNeuralNetwork
+from traffic_sign_detection.convolutional_neural_network import ConvolutionalNeuralNetwork
 from traffic_sign_detection.file_handler import FileHandler
 from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 from traffic_sign_detection.session_handler import SessionHandler
@@ -23,13 +23,13 @@ def main():
         hyper.next_parameter_set()
 
         # 2 DNN
-        deep_network = DeepNeuralNetwork(data, hyper)
-        deep_network.generate_network()
-        deep_network.generate_optimizer()
-        deep_network.compute_cost()
+        covnet = ConvolutionalNeuralNetwork(data, hyper)
+        covnet.generate_network()
+        covnet.generate_optimizer()
+        covnet.compute_cost()
 
         # 3 Run and save session
-        session = SessionHandler(files, data, deep_network, hyper)
+        session = SessionHandler(files, data, covnet, hyper)
         valid_accuracy = session.train()
         test_accuracy = session.test()
 
