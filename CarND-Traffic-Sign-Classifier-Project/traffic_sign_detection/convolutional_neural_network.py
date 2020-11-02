@@ -1,5 +1,6 @@
 """ Class to parametrize and define a deep neural network """
 import tensorflow as tf
+import numpy as np
 from tensorflow.contrib.layers import flatten
 from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 
@@ -12,52 +13,66 @@ class ConvolutionalNeuralNetwork:
         self.tf_features = tf.placeholder(tf.float32, shape=shape_features)
         self.tf_labels = tf.placeholder(tf.int32, None)
         self.tf_keep_prob = tf.placeholder(tf.float32)
-        self._tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
-        self._learning_rate = hyper.parameter.learning_rate
+        self.__tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
+        self.__learning_rate = hyper.parameter.learning_rate
 
         # Properties which have to be computed
-        self._cost = None
-        self._logits = None
-        self._optimizer = None
+        self.__cost = None
+        self.__logits = None
+        self.__optimizer = None
 
         mu = 0
         sigma = 0.1
 
+        # Dimensions per layer:
+        # Input: 32x32x3
+        # Layer 1 conv: 5x5x3x6  --> ceil(32 - 5 + 1)/1 = 28
+        # Layer 1 pool: 5x5x6x16  --> 28/2 = 14
+        # Layer 2 conv: 5x5x3x6  --> ceil(14 - 5 + 1)/1 = 10
+        # Layer 2 pool: 5x5x6x16  --> 10/2 = 5
+        self.__depth = [3, 6, 16]
+
+        # (height, width, input_depth, output_depth)
         self._weights = [
-            tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma)),
-            tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma)),
+            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__depth[0], self.__depth[1]), mean=mu, stddev=sigma)),
+            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__depth[1], self.__depth[2]), mean=mu, stddev=sigma)),
             tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma)),
             tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma)),
             tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma)),
         ]
 
         self._biases = [
-            tf.Variable(tf.zeros(shape=(1, 28, 28, 6))),
-            tf.Variable(tf.zeros(shape=(1, 10, 10, 16))),
+            tf.Variable(tf.zeros(shape=(1, 28, 28, self.__depth[1]))),
+            tf.Variable(tf.zeros(shape=(1, 10, 10, self.__depth[2]))),
             tf.Variable(tf.zeros(shape=(1, 120))),
             tf.Variable(tf.zeros(shape=(1, 84))),
             tf.Variable(tf.zeros(shape=(1, 43))),
         ]
 
+        # (batch, height, width, depth)
+        self.__strides = [
+            [1, 1, 1, 1],
+        ]
+
     @property
     def optimizer(self):
-        assert self._optimizer is not None
-        return self._optimizer
+        assert self.__optimizer is not None
+        return self.__optimizer
 
     @property
     def cost(self):
-        assert self._cost is not None
-        return self._cost
+        assert self.__cost is not None
+        return self.__cost
 
     def generate_optimizer(self):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self._tf_one_hot_labels, logits=self._logits)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
         loss_operation = tf.reduce_mean(cross_entropy)
-        optimizer = tf.train.AdamOptimizer(learning_rate=self._learning_rate)
-        self._optimizer = optimizer.minimize(loss_operation)
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.__learning_rate)
+        self.__optimizer = optimizer.minimize(loss_operation)
 
     def compute_cost(self):
-        prediction = tf.equal(tf.argmax(self._logits, 1), tf.argmax(self._tf_one_hot_labels, 1))
-        self._cost = tf.reduce_mean(tf.cast(prediction, tf.float32))
+        prediction = tf.equal(tf.argmax(self.__logits, 1), tf.argmax(self.__tf_one_hot_labels, 1))
+        self.__cost = tf.reduce_mean(tf.cast(prediction, tf.float32))
 
     def generate_network(self):
         # Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
@@ -70,7 +85,7 @@ class ConvolutionalNeuralNetwork:
         k = [1, 2, 2, 1]
         strides = [1, 2, 2, 1]
         padding = 'VALID'
-        layer_1 = tf.nn.max_pool(layer_1, k, strides, padding)
+        layer_1 = tf.nn.max_pool(layer_1, k, strides=strides, padding=padding)
 
         # Layer 2: Convolutional. Output = 10x10x16.
         strides = [1, 1, 1, 1]
@@ -99,4 +114,9 @@ class ConvolutionalNeuralNetwork:
         #layer_4 = tf.nn.dropout(layer_4, keep_prob=self.tf_keep_prob)
 
         # Layer 5: Fully Connected. Input = 84. Output = 43.
-        self._logits = tf.matmul(layer_4, self._weights[4]) + self._biases[4]
+        self.__logits = tf.matmul(layer_4, self._weights[4]) + self._biases[4]
+
+        def __compute_new_shape(height, width, filter_height, filter_width, strides):
+            new_height = np.ceil(float(height - filter_height + 1) / float(strides[1]))
+            new_width = np.ceil(float(width - filter_width + 1) / float(strides[2]))
+            return new_height, new_width
