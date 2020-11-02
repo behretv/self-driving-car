@@ -28,12 +28,11 @@ class SessionHandler:
 
     def train(self):
         feature_train, label_train = self.data.get_shuffled_data(DataType.TRAIN)
+        batch_count = int(math.ceil(len(feature_train) / self.batch_size))
 
         saver = tf.train.Saver()
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-
-            batch_count = int(math.ceil(len(feature_train) / self.batch_size))
 
             logging.info("Training...")
             accuracy = 0.0
@@ -50,7 +49,11 @@ class SessionHandler:
                     batch_end = batch_start + self.batch_size
                     batch_x = feature_train[batch_start:batch_end]
                     batch_y = label_train[batch_start:batch_end]
-                    sess.run(self.dnn.optimizer, feed_dict={self.dnn.tf_features: batch_x, self.dnn.tf_labels: batch_y})
+                    sess.run(self.dnn.optimizer, feed_dict={
+                        self.dnn.tf_features: batch_x,
+                        self.dnn.tf_labels: batch_y,
+                        self.dnn.tf_keep_prob: 0.5
+                    })
 
                     '''
                     # Log every 50 batches
@@ -83,8 +86,11 @@ class SessionHandler:
             i_end = i_start + self.batch_size
             tmp_features = feature_valid[i_start:i_end]
             tmp_labels = label_valid[i_start:i_end]
-            tmp_accuracy = tmp_sess.run(self.dnn.cost,
-                                        feed_dict={self.dnn.tf_features: tmp_features, self.dnn.tf_labels: tmp_labels})
+            tmp_accuracy = tmp_sess.run(self.dnn.cost, feed_dict={
+                self.dnn.tf_features: tmp_features,
+                self.dnn.tf_labels: tmp_labels,
+                self.dnn.tf_keep_prob: 1.0
+            })
             total_accuracy += (tmp_accuracy * len(tmp_features))
         return total_accuracy / n_features
 
@@ -94,7 +100,10 @@ class SessionHandler:
         feature_test, label_test = self.data.get_shuffled_data(DataType.TEST)
         with tf.Session() as sess:
             saver.restore(sess, self.file)
-            test_accuracy = sess.run(self.dnn.cost,
-                                     feed_dict={self.dnn.tf_features: feature_test, self.dnn.tf_labels: label_test})
+            test_accuracy = sess.run(self.dnn.cost, feed_dict={
+                self.dnn.tf_features: feature_test,
+                self.dnn.tf_labels: label_test,
+                self.dnn.tf_keep_prob: 1.0
+            })
 
         return test_accuracy

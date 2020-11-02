@@ -46,7 +46,7 @@ class DataHandler:
         for key in DataType:
             self.__import_data(key)
 
-        self._n_features = self.feature[DataType.TRAIN].shape[1:3]
+        self._n_features = self.feature[DataType.TRAIN].shape[1:]
         self._n_labels = len(set(self.label[DataType.TRAIN]))
         logging.info("Number of features = %d", self.n_features[0]*self.n_features[1])
         logging.info("Number of labels = %d", self.n_labels)
@@ -86,16 +86,36 @@ class DataHandler:
         for key in DataType:
             self.__pre_process_labels(key, encoder)
 
+        self._n_features = self.feature[DataType.TRAIN].shape[1:]
         logging.info("Processing finished!")
 
-    def show_random_image(self):
+    def visualize_random_image(self):
         feature_train = self.feature[DataType.TRAIN]
         label_train = self.label[DataType.TRAIN]
         index = random.randint(0, len(feature_train))
         image = feature_train[index].squeeze()
+        gray = self.__rgb2gray(image)
 
+        plt.figure()
+        plt.subplot(121)
         plt.imshow(image)
-        plt.title("Label " + str(label_train[index]))
+        plt.title("Example RGB image for Label " + str(label_train[index]))
+        plt.subplot(122)
+        plt.imshow(gray, cmap='gray')
+        plt.title("Example gray-scale image for Label " + str(label_train[index]))
+        plt.show()
+
+    def visualize_labels_histogram(self):
+        labels_train = self.label[DataType.TRAIN]
+        labels_test = self.label[DataType.TEST]
+        labels_valid = self.label[DataType.VALID]
+
+        bins = range(0, self.n_labels)
+
+        plt.hist([labels_train, labels_test, labels_valid], bins, label=['training', 'test', 'validation'])
+        plt.title("Labels Histogram")
+        plt.xlim(bins[0], bins[-1])
+        plt.legend(loc='upper center')
         plt.show()
 
     def __pre_process_feature(self, key: DataType):
@@ -125,7 +145,7 @@ class DataHandler:
     def __reshape_image_data(self, key: DataType):
         list_gray = []
         for rgb in self._feature[key]:
-            list_gray.append(DataHandler.__rgb2gray(rgb).flatten())
+            list_gray.append(DataHandler.__rgb2gray(rgb))
         self._feature[key] = np.array(list_gray)
 
     def __normalize_grayscale(self, key: DataType):

@@ -13,9 +13,12 @@ def main():
     # 1 Data and hyper-parameter
     files = FileHandler()
     data = DataHandler(files)
+    #data.visualize_random_image()
+    #data.process()
+    #data.visualize_labels_histogram()
     hyper = HyperParameterHandler(files)
 
-    for i in range(0, 30):
+    for i in range(0, 3):
         logging.info("%d # ITERATION \n\n", i)
         hyper.next_parameter_set()
 

@@ -8,8 +8,10 @@ class DeepNeuralNetwork:
 
     def __init__(self, data, hyper: HyperParameterHandler):
         # Properties which can be assigned by the input
-        self.tf_features = tf.placeholder(tf.float32, (None, 32, 32, 3))
+        shape_features = (None, ) + data.n_features
+        self.tf_features = tf.placeholder(tf.float32, shape=shape_features)
         self.tf_labels = tf.placeholder(tf.int32, None)
+        self.tf_keep_prob = tf.placeholder(tf.float32)
         self._tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
         self._learning_rate = hyper.parameter.learning_rate
 
@@ -75,6 +77,7 @@ class DeepNeuralNetwork:
         padding = 'VALID'
         layer_2 = tf.nn.conv2d(layer_1, self._weights[1], strides=strides, padding=padding) + self._biases[1]
         layer_2 = tf.nn.relu(layer_2)
+        layer_2 = tf.nn.dropout(layer_2, keep_prob=self.tf_keep_prob)
 
         # Pooling. Input = 10x10x16. Output = 5x5x16.
         k = [1, 2, 2, 1]
@@ -88,10 +91,12 @@ class DeepNeuralNetwork:
         # Layer 3: Fully Connected. Input = 400. Output = 120.
         layer_3 = tf.matmul(fc, self._weights[2]) + self._biases[2]
         layer_3 = tf.nn.relu(layer_3)
+        layer_3 = tf.nn.dropout(layer_3, keep_prob=self.tf_keep_prob)
 
         # Layer 4: Fully Connected. Input = 120. Output = 84.
         layer_4 = tf.matmul(layer_3, self._weights[3]) + self._biases[3]
         layer_4 = tf.nn.relu(layer_4)
+        layer_4 = tf.nn.dropout(layer_4, keep_prob=self.tf_keep_prob)
 
         # Layer 5: Fully Connected. Input = 84. Output = 43.
         self._logits = tf.matmul(layer_4, self._weights[4]) + self._biases[4]

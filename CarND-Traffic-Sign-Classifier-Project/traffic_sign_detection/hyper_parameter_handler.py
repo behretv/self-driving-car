@@ -23,7 +23,7 @@ class Parameters:
 
     def add_random_offset(self):
         self.learning_rate *= 10.0/random.randint(5, 15)
-        self.epochs += random.randint(-5, 5)
+        self.epochs += random.randint(-5, 2)
         self.batch_size += random.randint(-20, 20)
 
 
