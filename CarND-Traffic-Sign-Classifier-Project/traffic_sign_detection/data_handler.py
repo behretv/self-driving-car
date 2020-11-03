@@ -26,18 +26,18 @@ class DataHandler:
     """
 
     def __init__(self, files: FileHandler):
-        self.logger = logging.Logger
-        self.file = {
+        self.__logger = logging.getLogger(DataHandler.__name__)
+        self.__file = {
             DataType.TRAIN: files.training_file,
             DataType.TEST: files.testing_file,
             DataType.VALID: files.validation_file
         }
-        self._feature = {
+        self.__feature = {
             DataType.TRAIN: np.array([]),
             DataType.TEST: np.array([]),
             DataType.VALID: np.array([])
         }
-        self._label = {
+        self.__label = {
             DataType.TRAIN: np.array([]),
             DataType.TEST: np.array([]),
             DataType.VALID: np.array([])
@@ -48,29 +48,33 @@ class DataHandler:
 
         self.__image_shape = self.feature[DataType.TRAIN].shape[1:]
         self.__number_of_labels = len(set(self.label[DataType.TRAIN]))
-        logging.info("Number of features = %d", self.image_shape[1] * self.image_shape[2])
-        logging.info("Number of labels = %d", self.n_labels)
+        self.__logger.info("Number of features = %d", self.image_shape[1] * self.image_shape[2])
+        self.__logger.info("Number of labels = %d", self.n_labels)
 
     @property
     def feature(self):
-        assert len(self._feature) > 0, "Number of features <= 0!"
-        return self._feature
+        assert len(self.__feature) > 0, "Number of features <= 0!"
+        return self.__feature
 
     @property
     def label(self):
-        assert len(self._label) > 0, "Number of labels <= 0!"
-        return self._label
+        assert len(self.__label) > 0, "Number of labels <= 0!"
+        return self.__label
 
     @property
     def n_labels(self):
         return self.__number_of_labels
 
     @property
+    def image_depth(self):
+        depth = 1
+        if len(self.__image_shape) == 3:
+            depth = self.__image_shape[2]
+        return depth
+
+    @property
     def image_shape(self):
-        img_shape = (None,) + self.__image_shape
-        if len(img_shape) == 3:
-            img_shape += (1,)
-        return img_shape
+        return (None,) + self.__image_shape
 
     def sample_size(self, key):
         return len(self.feature[key])
@@ -84,13 +88,13 @@ class DataHandler:
         for key in DataType:
             self.__pre_process_feature(key)
 
-        encoder = LabelBinarizer()
-        encoder.fit(self._label[DataType.TRAIN])
-        for key in DataType:
-            self.__pre_process_labels(key, encoder)
+       # encoder = LabelBinarizer()
+       # encoder.fit(self.__label[DataType.TRAIN])
+       # for key in DataType:
+       #     self.__pre_process_labels(key, encoder)
 
         self.__image_shape = self.feature[DataType.TRAIN].shape[1:]
-        logging.info("Processing finished!")
+        self.__logger.info("Processing finished!")
 
     def visualize_random_image(self):
         feature_train = self.feature[DataType.TRAIN]
@@ -126,18 +130,18 @@ class DataHandler:
         self.__normalize_grayscale(key)
 
     def __pre_process_labels(self, key: DataType, encoder):
-        self._label[key] = encoder.transform(self._label[key])
-        self._label[key] = self._label[key].astype(np.float32)
+        self.__label[key] = encoder.transform(self.__label[key])
+        self.__label[key] = self.__label[key].astype(np.float32)
 
     def __import_data(self, key: DataType):
-        file_name = self.file[key]
+        file_name = self.__file[key]
         with open(file_name, mode='rb') as f:
             data = pickle.load(f)
 
-        self._feature[key] = data['features']
-        self._label[key] = data['labels']
+        self.__feature[key] = data['features']
+        self.__label[key] = data['labels']
 
-        logging.info("Number of {} examples ={}".format(key.value, self.sample_size(key)))
+        self.__logger.info("Number of {} examples ={}".format(key.value, self.sample_size(key)))
 
     @staticmethod
     def __rgb2gray(rgb):
@@ -147,9 +151,10 @@ class DataHandler:
 
     def __reshape_image_data(self, key: DataType):
         list_gray = []
-        for rgb in self._feature[key]:
+        for rgb in self.__feature[key]:
             list_gray.append(DataHandler.__rgb2gray(rgb))
-        self._feature[key] = np.array(list_gray)
+        tmp_np_array = np.array(list_gray)
+        self.__feature[key] = tmp_np_array.reshape(tmp_np_array.shape + (1,))
 
     def __normalize_grayscale(self, key: DataType):
         """
@@ -161,4 +166,4 @@ class DataHandler:
         b = 0.9
         grayscale_min = 0
         grayscale_max = 255
-        self._feature[key] = a + (((self._feature[key] - grayscale_min) * (b - a)) / (grayscale_max - grayscale_min))
+        self.__feature[key] = a + (((self.__feature[key] - grayscale_min) * (b - a)) / (grayscale_max - grayscale_min))
