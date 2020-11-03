@@ -46,9 +46,9 @@ class DataHandler:
         for key in DataType:
             self.__import_data(key)
 
-        self._n_features = self.feature[DataType.TRAIN].shape[1:]
-        self._n_labels = len(set(self.label[DataType.TRAIN]))
-        logging.info("Number of features = %d", self.n_features[0]*self.n_features[1])
+        self.__image_shape = self.feature[DataType.TRAIN].shape[1:]
+        self.__number_of_labels = len(set(self.label[DataType.TRAIN]))
+        logging.info("Number of features = %d", self.image_shape[1] * self.image_shape[2])
         logging.info("Number of labels = %d", self.n_labels)
 
     @property
@@ -63,11 +63,14 @@ class DataHandler:
 
     @property
     def n_labels(self):
-        return self._n_labels
+        return self.__number_of_labels
 
     @property
-    def n_features(self):
-        return self._n_features
+    def image_shape(self):
+        img_shape = (None,) + self.__image_shape
+        if len(img_shape) == 3:
+            img_shape += (1,)
+        return img_shape
 
     def sample_size(self, key):
         return len(self.feature[key])
@@ -86,7 +89,7 @@ class DataHandler:
         for key in DataType:
             self.__pre_process_labels(key, encoder)
 
-        self._n_features = self.feature[DataType.TRAIN].shape[1:]
+        self.__image_shape = self.feature[DataType.TRAIN].shape[1:]
         logging.info("Processing finished!")
 
     def visualize_random_image(self):

@@ -30,7 +30,7 @@ def main():
 
         # 3 Run and save session
         session = SessionHandler(files, data, covnet, hyper)
-        valid_accuracy = session.train()
+        valid_accuracy, sess = session.train()
         test_accuracy = session.test()
 
         hyper.update(test_accuracy, data.sample_size(DataType.TEST))

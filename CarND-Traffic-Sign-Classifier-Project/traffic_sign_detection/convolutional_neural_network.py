@@ -3,14 +3,15 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.layers import flatten
 from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
+from traffic_sign_detection.data_handler import DataHandler
 
 
 class ConvolutionalNeuralNetwork:
 
-    def __init__(self, data, hyper: HyperParameterHandler):
+    def __init__(self, data: DataHandler, hyper: HyperParameterHandler):
         # Properties which can be assigned by the input
-        shape_features = (None, ) + data.n_features
-        self.tf_features = tf.placeholder(tf.float32, shape=shape_features)
+        self.__img_shape = data.image_shape
+        self.tf_features = tf.placeholder(tf.float32, shape=self.__img_shape)
         self.tf_labels = tf.placeholder(tf.int32, None)
         self.tf_keep_prob = tf.placeholder(tf.float32)
         self.__tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
@@ -21,8 +22,8 @@ class ConvolutionalNeuralNetwork:
         self.__logits = None
         self.__optimizer = None
 
-        mu = 0
-        sigma = 0.1
+        self.mu = 0
+        self.sigma = 0.1
 
         # Dimensions per layer:
         # Input: 32x32x3
@@ -30,28 +31,23 @@ class ConvolutionalNeuralNetwork:
         # Layer 1 pool: 5x5x6x16  --> 28/2 = 14
         # Layer 2 conv: 5x5x3x6  --> ceil(14 - 5 + 1)/1 = 10
         # Layer 2 pool: 5x5x6x16  --> 10/2 = 5
-        self.__depth = [3, 6, 16]
+        self.__depth = [6, 16]
 
         # (height, width, input_depth, output_depth)
         self._weights = [
-            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__depth[0], self.__depth[1]), mean=mu, stddev=sigma)),
-            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__depth[1], self.__depth[2]), mean=mu, stddev=sigma)),
-            tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma)),
-            tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma)),
-            tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma)),
+            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__img_shape[3], self.__depth[0]), mean=self.mu, stddev=self.sigma)),
+            tf.Variable(tf.truncated_normal(shape=(5, 5, self.__depth[0], self.__depth[1]), mean=self.mu, stddev=self.sigma)),
+            tf.Variable(tf.truncated_normal(shape=(400, 120), mean=self.mu, stddev=self.sigma)),
+            tf.Variable(tf.truncated_normal(shape=(120, 84), mean=self.mu, stddev=self.sigma)),
+            tf.Variable(tf.truncated_normal(shape=(84, 43), mean=self.mu, stddev=self.sigma)),
         ]
 
         self._biases = [
-            tf.Variable(tf.zeros(shape=(1, 28, 28, self.__depth[1]))),
-            tf.Variable(tf.zeros(shape=(1, 10, 10, self.__depth[2]))),
+            tf.Variable(tf.zeros(shape=(1, 28, 28, self.__depth[0]))),
+            tf.Variable(tf.zeros(shape=(1, 10, 10, self.__depth[1]))),
             tf.Variable(tf.zeros(shape=(1, 120))),
             tf.Variable(tf.zeros(shape=(1, 84))),
             tf.Variable(tf.zeros(shape=(1, 43))),
-        ]
-
-        # (batch, height, width, depth)
-        self.__strides = [
-            [1, 1, 1, 1],
         ]
 
     @property
@@ -76,29 +72,20 @@ class ConvolutionalNeuralNetwork:
 
     def generate_network(self):
         # Layer 1: Convolutional. Input = 32x32x1. Output = 28x28x6.
-        strides = [1, 1, 1, 1]
-        padding = 'VALID'
-        layer_1 = tf.nn.conv2d(self.tf_features, self._weights[0], strides=strides, padding=padding) + self._biases[0]
-        layer_1 = tf.nn.relu(layer_1)
-
         # Pooling. Input = 28x28x6. Output = 14x14x6.
-        k = [1, 2, 2, 1]
-        strides = [1, 2, 2, 1]
-        padding = 'VALID'
-        layer_1 = tf.nn.max_pool(layer_1, k, strides=strides, padding=padding)
+        layer_1 = self.__convolutional_layer(tf_feature=self.tf_features,
+                                             in_sz=32,
+                                             sz_filter=5,
+                                             in_depth=3,
+                                             out_depth=6)
 
         # Layer 2: Convolutional. Output = 10x10x16.
-        strides = [1, 1, 1, 1]
-        padding = 'VALID'
-        layer_2 = tf.nn.conv2d(layer_1, self._weights[1], strides=strides, padding=padding) + self._biases[1]
-        layer_2 = tf.nn.relu(layer_2)
-        layer_2 = tf.nn.dropout(layer_2, keep_prob=self.tf_keep_prob)
-
         # Pooling. Input = 10x10x16. Output = 5x5x16.
-        k = [1, 2, 2, 1]
-        strides = [1, 2, 2, 1]
-        padding = 'VALID'
-        layer_2 = tf.nn.max_pool(layer_2, k, strides, padding)
+        layer_2 = self.__convolutional_layer(tf_feature=layer_1,
+                                             in_sz=14,
+                                             sz_filter=5,
+                                             in_depth=6,
+                                             out_depth=16)
 
         # Flatten. Input = 5x5x16. Output = 400.
         fc = flatten(layer_2)
@@ -106,7 +93,7 @@ class ConvolutionalNeuralNetwork:
         # Layer 3: Fully Connected. Input = 400. Output = 120.
         layer_3 = tf.matmul(fc, self._weights[2]) + self._biases[2]
         layer_3 = tf.nn.relu(layer_3)
-        #layer_3 = tf.nn.dropout(layer_3, keep_prob=self.tf_keep_prob)
+        layer_3 = tf.nn.dropout(layer_3, keep_prob=self.tf_keep_prob)
 
         # Layer 4: Fully Connected. Input = 120. Output = 84.
         layer_4 = tf.matmul(layer_3, self._weights[3]) + self._biases[3]
@@ -116,7 +103,17 @@ class ConvolutionalNeuralNetwork:
         # Layer 5: Fully Connected. Input = 84. Output = 43.
         self.__logits = tf.matmul(layer_4, self._weights[4]) + self._biases[4]
 
-        def __compute_new_shape(height, width, filter_height, filter_width, strides):
-            new_height = np.ceil(float(height - filter_height + 1) / float(strides[1]))
-            new_width = np.ceil(float(width - filter_width + 1) / float(strides[2]))
-            return new_height, new_width
+    def __convolutional_layer(self, tf_feature, in_sz, sz_filter, in_depth, out_depth):
+        strides = [1, 1, 1, 1]
+        out_sz = np.ceil(float(in_sz - sz_filter + 1) / float(strides[1]))
+
+        weight = tf.Variable(tf.truncated_normal(shape=(sz_filter, sz_filter, in_depth, out_depth), mean=self.mu, stddev=self.sigma))
+        bias = tf.Variable(tf.zeros(shape=(1, out_sz, out_sz, out_depth)))
+
+        conv_layer = tf.nn.conv2d(tf_feature, weight, strides=strides, padding='VALID') + bias
+        #conv_layer = tf.nn.bias_add(conv_layer, bias)
+        conv_layer = tf.nn.relu(conv_layer)
+
+        k = [1, 2, 2, 1]
+        strides = [1, 2, 2, 1]
+        return tf.nn.max_pool(conv_layer, k, strides=strides, padding='VALID')

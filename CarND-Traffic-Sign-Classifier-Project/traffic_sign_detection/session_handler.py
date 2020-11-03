@@ -61,13 +61,13 @@ class SessionHandler:
 
                 if len(list_accuracy) > 3:
                     mean_diff = np.mean(np.diff(list_accuracy[-3:]))
-                    if mean_diff < 0.01:
+                    if mean_diff < 0.005:
                         self.__logger.info("Abort, accuracy did not increase enough!")
                         break
 
             saver.save(sess, self.__file)
             print("Model saved")
-        return accuracy
+        return accuracy, sess
 
     def validate(self):
         feature_valid, label_valid = self.__data.get_shuffled_data(DataType.VALID)
