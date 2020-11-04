@@ -34,7 +34,7 @@ class HyperParameterHandler:
     def print_parameters(self):
         self.__parameter.print()
 
-    def update(self, new_accuracy, sample_size):
+    def update_accuracy(self, new_accuracy, sample_size):
         """ Update only if rule of 30 is satisfied """
         if new_accuracy - (30.0 / sample_size) > self.__parameter.accuracy:
             self.__parameter.accuracy = new_accuracy
@@ -48,12 +48,9 @@ class HyperParameterHandler:
         with open(self.__file, 'r') as hyper_file:
             return json.load(hyper_file)
 
-    def update_file_if_accuracy_improved(self):
-        if self.is_accuracy_improved:
-            self.__logger.info("Updating: {}".format(self.__file))
-            with open(self.__file, 'w') as hyper_file:
-                self.__parameter.accuracy = float(round(self.__parameter.accuracy, 3))
-                dict_tmp = self.__parameter.to_dict()
-                json.dump(dict_tmp, hyper_file)
-        else:
-            self.__logger.info("Keep: {} since accuracy did not improve!".format(self.__file))
+    def update_file(self):
+        self.__logger.info("Updating: {}".format(self.__file))
+        with open(self.__file, 'w') as hyper_file:
+            self.__parameter.accuracy = float(round(self.__parameter.accuracy, 3))
+            dict_tmp = self.__parameter.to_dict()
+            json.dump(dict_tmp, hyper_file)

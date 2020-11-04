@@ -35,6 +35,6 @@ def test_setter_and_getter(test_input, expected):
 def test_update(test_input, expected):
     files = FileHandler()
     hyper = HyperParameterHandler(files)
-    hyper.update(test_input[0], test_input[1])
+    hyper.update_accuracy(test_input[0], test_input[1])
     result = hyper.is_accuracy_improved
     assert result == expected

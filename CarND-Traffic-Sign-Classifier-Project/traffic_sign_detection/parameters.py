@@ -17,6 +17,8 @@ class Parameters:
         self.pool_strides = [1, 2, 2, 1]
         self.pool_ksize = [1, 2, 2, 1]
         self.out_size = [120, 84]
+        self.mu = 0
+        self.sigma = 0.1
 
     def to_dict(self):
         return {
@@ -28,7 +30,7 @@ class Parameters:
 
     def add_random_offset(self):
         self.learning_rate *= 10.0 / random.randint(5, 15)
-        self.epochs += random.randint(-5, 2)
+        self.epochs += random.randint(-1, 4)
         self.batch_size += random.randint(-15, 15)
 
     def print(self):

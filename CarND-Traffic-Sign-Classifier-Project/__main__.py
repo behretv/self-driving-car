@@ -8,7 +8,7 @@ from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
 from traffic_sign_detection.session_handler import SessionHandler
 
 
-def train():
+def main():
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     coloredlogs.install(level='INFO', logger=logger)
@@ -30,19 +30,23 @@ def train():
         covnet = ConvolutionalNeuralNetwork(data, hyper)
         covnet.generate_network()
         covnet.generate_optimizer()
-        covnet.compute_cost()
+        covnet.generate_accuracy()
 
         # 3 Run and save session
         session.cnn = covnet
         session.params = hyper.parameter
         valid_accuracy = session.train(i)
         logger.info("Valid Accuracy = {:.3f}".format(valid_accuracy))
-        hyper.update(valid_accuracy, data.sample_size(DataType.TEST))
-        hyper.update_file_if_accuracy_improved()
+        hyper.update_accuracy(valid_accuracy, data.sample_size(DataType.TEST))
+
+        if hyper.is_accuracy_improved:
+            hyper.update_file()
+        else:
+            logger.info("Keep: {} since accuracy did not improve!".format(files.hyper_parameter))
 
         test_accuracy = session.test(i)
         logger.info('Test Accuracy = {:.3f}'.format(test_accuracy))
 
 
 if __name__ == "__main__":
-    train()
+    main()
