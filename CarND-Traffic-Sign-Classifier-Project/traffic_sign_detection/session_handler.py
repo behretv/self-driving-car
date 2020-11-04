@@ -61,7 +61,7 @@ class SessionHandler:
                 list_accuracy = np.append(list_accuracy, accuracy)
 
                 if len(list_accuracy) > 3:
-                    mean_diff = np.mean(np.diff(list_accuracy[-3:]))
+                    mean_diff = np.mean(np.diff(list_accuracy[-4:]))
                     if mean_diff < 0.005:
                         self.__logger.info("Abort, accuracy did not increase enough!")
                         break

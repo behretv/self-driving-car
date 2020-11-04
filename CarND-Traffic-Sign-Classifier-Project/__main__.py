@@ -18,7 +18,7 @@ def main():
     #data.visualize_labels_histogram()
     hyper = HyperParameterHandler(files)
 
-    for i in range(0, 30):
+    for i in range(0, 10):
         logging.info("%d # ITERATION \n\n", i)
         hyper.next_parameter_set()
 
