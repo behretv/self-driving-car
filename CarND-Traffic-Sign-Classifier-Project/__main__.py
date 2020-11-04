@@ -22,13 +22,13 @@ def main():
     hyper = HyperParameterHandler(files)
     session = SessionHandler(files, data)
 
-    for i in range(0, 3):
+    for i in range(0, 1):
         logger.info("%d # ITERATION \n\n", i)
-        hyper.next_parameter_set()
 
         # 2 DNN
         covnet = ConvolutionalNeuralNetwork(data, hyper)
         covnet.generate_network()
+        covnet.generate_cost()
         covnet.generate_optimizer()
         covnet.generate_accuracy()
 
@@ -37,8 +37,9 @@ def main():
         session.params = hyper.parameter
         valid_accuracy = session.train(i)
         logger.info("Valid Accuracy = {:.3f}".format(valid_accuracy))
-        hyper.update_accuracy(valid_accuracy, data.sample_size(DataType.TEST))
+        session.visualize_training_process()
 
+        hyper.update_accuracy(valid_accuracy, data.sample_size(DataType.TEST))
         if hyper.is_accuracy_improved:
             hyper.update_file()
         else:
@@ -46,6 +47,9 @@ def main():
 
         test_accuracy = session.test(i)
         logger.info('Test Accuracy = {:.3f}'.format(test_accuracy))
+
+        # Generate new random parameter set
+        hyper.next_parameter_set()
 
 
 if __name__ == "__main__":

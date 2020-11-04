@@ -9,7 +9,6 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import LabelBinarizer
 from sklearn import utils
 from traffic_sign_detection.file_handler import FileHandler
 

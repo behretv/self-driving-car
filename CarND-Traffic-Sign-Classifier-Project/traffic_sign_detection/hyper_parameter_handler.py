@@ -12,6 +12,7 @@ class HyperParameterHandler:
         self.__file = files.hyper_parameter
         self.__parameter = Parameters(self.__read_file())
         self.__is_accuracy_improved = False
+        self.print_parameters()
 
     @property
     def parameter(self):

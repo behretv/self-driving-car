@@ -43,9 +43,11 @@ class ConvolutionalNeuralNetwork:
         assert self.__params is not None
         return self.__params
 
-    def generate_optimizer(self):
+    def generate_cost(self):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
         self.__cost = tf.reduce_mean(cross_entropy)
+
+    def generate_optimizer(self):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.params.learning_rate)
         self.__optimizer = optimizer.minimize(self.cost)
 
