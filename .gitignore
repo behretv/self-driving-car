@@ -264,4 +264,7 @@ dmypy.json
 # profiling parameter
 .prof
 
+# Ignore traned moodels
+train_model.ckpt*
+
 # End of https://www.toptal.com/developers/gitignore/api/pycharm,python
