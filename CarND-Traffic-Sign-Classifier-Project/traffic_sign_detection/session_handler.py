@@ -27,6 +27,7 @@ class SessionHandler:
         self.__epochs = hyper.parameter.epochs
         self.__file = files.model_file
         self.__logger = logging.getLogger(SessionHandler.__name__)
+        self.__session = None
 
     def train(self):
         feature_train, label_train = self.__data.get_shuffled_data(DataType.TRAIN)
@@ -34,8 +35,8 @@ class SessionHandler:
 
         saver = tf.train.Saver()
         list_accuracy = np.array([])
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
+        with tf.Session() as self.__session:
+            self.__session.run(tf.global_variables_initializer())
 
             self.__logger.info("Training...")
             accuracy = 0.0
