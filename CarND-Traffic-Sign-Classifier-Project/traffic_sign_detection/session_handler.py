@@ -69,7 +69,9 @@ class SessionHandler:
         self.session = tf.Session()
         self.session.run(tf.global_variables_initializer())
 
-    def __extract_batch(self):
+    def __extract_batch_ranger(self, i):
+        start = i * self.params.batch_size
+        return start, start + self.params.batch_size
 
     def train(self, step):
         self.__logger.info("{}# Training...".format(id))
@@ -80,26 +82,25 @@ class SessionHandler:
         self.list_loss = []
         self.list_batch = []
 
-        feature_train, label_train = self.__data.get_shuffled_data(DataType.TRAIN)
-        feature_valid, label_valid = self.__data.get_shuffled_data(DataType.VALID)
-        batch_count = int(math.ceil(len(feature_train) / self.params.batch_size))
+        feature_train, label_train = self.__data.shuffled_data(DataType.TRAIN)
+        feature_valid, label_valid = self.__data.shuffled_data(DataType.VALID)
+        n_train_batches = self.__data.number_of_batches(DataType.TRAIN, self.params.batch_size)
+        n_valid_batches = self.__data.number_of_batches(DataType.VALID, self.params.batch_size)
 
         self.__init_session()
 
         for i in range(self.params.epochs):
             # Progress bar
 
-            batches_pbar = tqdm(range(batch_count), desc=self.__progress_msg(i), unit='batches')
+            batches_pbar = tqdm(range(n_train_batches), desc=self.__progress_msg(i), unit='batches')
 
             feature_train, label_train = shuffle(feature_train, label_train)
 
             for batch_i in batches_pbar:
-                batch_start = batch_i * self.params.batch_size
-                batch_end = batch_start + self.params.batch_size
-
-                train_batch = self.__generate_feed_dict(feature_train, label_train, batch_start, batch_end, 0.5)
-                loss_batch = self.__generate_feed_dict(feature_train, label_train, batch_start, batch_end, 1.0)
-                valid_feed = self.__generate_feed_dict(feature_valid, label_valid, batch_start, batch_end, 1.0)
+                batch_range = self.__extract_batch_ranger(batch_i)
+                train_batch = self.__generate_feed_dict(feature_train, label_train, batch_range, 0.5)
+                loss_batch = self.__generate_feed_dict(feature_train, label_train, batch_range, 1.0)
+                valid_feed = self.__generate_feed_dict(feature_valid, label_valid, batch_range, 1.0)
 
                 self.__session.run(self.cnn.optimizer, feed_dict=train_batch)
                 loss = self.__session.run(self.cnn.cost, feed_dict=loss_batch)
@@ -116,7 +117,7 @@ class SessionHandler:
                     self.list_valid_accuracy.append(valid_accuracy)
                     self.list_loss.append(loss)
 
-            self.list_total_valid_accuracy.append(self.validate(feature_valid, label_valid))
+            self.list_total_valid_accuracy.append(self.validate(feature_valid, label_valid, n_valid_batches))
             if not self.__is_accuracy_improved(self.list_total_valid_accuracy):
                 break
 
@@ -124,19 +125,16 @@ class SessionHandler:
 
         return self.list_total_valid_accuracy[-1]
 
-    def validate(self, feature_valid, label_valid):
+    def validate(self, feature_valid, label_valid, number_of_batches):
         n_features = len(feature_valid)
 
         total_accuracy = 0
-        for i_start in range(0, n_features, self.params.batch_size):
-            i_end = i_start + self.params.batch_size
-            tmp_features = feature_valid[i_start:i_end]
-            tmp_labels = label_valid[i_start:i_end]
-
-            valid_batch = self.__generate_feed_dict(tmp_features, tmp_labels)
+        for i_start in range(number_of_batches):
+            batch_range = self.__extract_batch_ranger(i_start)
+            valid_batch = self.__generate_feed_dict(feature_valid, label_valid, batch_range)
             tmp_accuracy = self.session.run(self.cnn.accuracy, feed_dict=valid_batch)
 
-            total_accuracy += (tmp_accuracy * len(tmp_features))
+            total_accuracy += (tmp_accuracy * self.params.batch_size)
         return total_accuracy / n_features
 
     def test(self, step, datatype: DataType):
@@ -145,7 +143,7 @@ class SessionHandler:
 
         # Runs saved session
         saver = tf.train.Saver()
-        feature_test, label_test = self.__data.get_shuffled_data(datatype)
+        feature_test, label_test = self.__data.shuffled_data(datatype)
         with tf.Session() as sess:
             saver.restore(sess, filename)
             feed_dict = self.__generate_feed_dict(feature_test, label_test)
@@ -173,10 +171,13 @@ class SessionHandler:
         plt.tight_layout()
         plt.show()
 
-    def __generate_feed_dict(self, feature, label, start=0, end=-1, keep_prob=1.0):
+    def __generate_feed_dict(self, feature, label, idx_range=None, keep_prob=1.0):
+        if idx_range is not None:
+            feature = feature[idx_range[0]:idx_range[1]]
+            label = label[idx_range[0]:idx_range[1]]
         return {
-            self.cnn.tf_features: feature[start:end],
-            self.cnn.tf_labels: label[start:end],
+            self.cnn.tf_features: feature,
+            self.cnn.tf_labels: label,
             self.cnn.tf_keep_prob: keep_prob
         }
 

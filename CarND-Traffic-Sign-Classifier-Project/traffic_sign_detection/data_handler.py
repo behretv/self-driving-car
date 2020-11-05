@@ -2,6 +2,7 @@
 File to pre-process parameter to provide tensors
 """
 import enum
+import math
 import pickle
 import random
 import logging
@@ -82,10 +83,13 @@ class DataHandler:
     def sample_size(self, key):
         return len(self.feature[key])
 
-    def get_shuffled_data(self, key: DataType):
+    def shuffled_data(self, key: DataType):
         feature_train = self.feature[key]
         label_train = self.label[key]
         return utils.shuffle(feature_train, label_train)
+
+    def number_of_batches(self, key, batch_size):
+        return int(math.ceil(self.sample_size(key) / batch_size))
 
     def process(self):
         for key in DataType:
