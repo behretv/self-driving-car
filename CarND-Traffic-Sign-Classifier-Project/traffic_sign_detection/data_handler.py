@@ -17,6 +17,7 @@ class DataType(enum.Enum):
     TRAIN = 'train'
     TEST = 'test'
     VALID = 'valid'
+    INTERNET = 'internet'
 
 
 class DataHandler:
@@ -29,17 +30,20 @@ class DataHandler:
         self.__file = {
             DataType.TRAIN: files.training_file,
             DataType.TEST: files.testing_file,
-            DataType.VALID: files.validation_file
+            DataType.VALID: files.validation_file,
+            DataType.INTERNET: files.internet_file
         }
         self.__feature = {
             DataType.TRAIN: np.array([]),
             DataType.TEST: np.array([]),
-            DataType.VALID: np.array([])
+            DataType.VALID: np.array([]),
+            DataType.INTERNET: np.array([])
         }
         self.__label = {
             DataType.TRAIN: np.array([]),
             DataType.TEST: np.array([]),
-            DataType.VALID: np.array([])
+            DataType.VALID: np.array([]),
+            DataType.INTERNET: np.array([])
         }
 
         for key in DataType:
@@ -87,11 +91,6 @@ class DataHandler:
         for key in DataType:
             self.__pre_process_feature(key)
 
-       # encoder = LabelBinarizer()
-       # encoder.fit(self.__label[DataType.TRAIN])
-       # for key in DataType:
-       #     self.__pre_process_labels(key, encoder)
-
         self.__image_shape = self.feature[DataType.TRAIN].shape[1:]
         self.__logger.info("Processing finished!")
 
@@ -102,7 +101,7 @@ class DataHandler:
         image = feature_train[index].squeeze()
         gray = self.__rgb2gray(image)
 
-        plt.figure()
+        plt.figure(figsize=(15, 7))
         plt.subplot(121)
         plt.imshow(image)
         plt.title("Example RGB image for Label " + str(label_train[index]))
@@ -118,6 +117,7 @@ class DataHandler:
 
         bins = range(0, self.n_labels)
 
+        plt.figure(figsize=(15, 10))
         plt.hist([labels_train, labels_test, labels_valid], bins, label=['training', 'test', 'validation'])
         plt.title("Labels Histogram")
         plt.xlim(bins[0], bins[-1])
@@ -127,10 +127,6 @@ class DataHandler:
     def __pre_process_feature(self, key: DataType):
         self.__reshape_image_data(key)
         self.__normalize_grayscale(key)
-
-    def __pre_process_labels(self, key: DataType, encoder):
-        self.__label[key] = encoder.transform(self.__label[key])
-        self.__label[key] = self.__label[key].astype(np.float32)
 
     def __import_data(self, key: DataType):
         file_name = self.__file[key]

@@ -20,10 +20,14 @@ def main():
     data.process()
     #data.visualize_labels_histogram()
     hyper = HyperParameterHandler(files)
-    session = SessionHandler(files, data)
+    session_handler = SessionHandler(files, data)
 
     for i in range(0, 1):
         logger.info("%d # ITERATION \n\n", i)
+
+        # Generate new random parameter set
+        if i > 0:
+            hyper.next_parameter_set()
 
         # 2 DNN
         covnet = ConvolutionalNeuralNetwork(data, hyper)
@@ -33,23 +37,30 @@ def main():
         covnet.generate_accuracy()
 
         # 3 Run and save session
-        session.cnn = covnet
-        session.params = hyper.parameter
-        valid_accuracy = session.train(i)
+        session_handler.cnn = covnet
+        session_handler.params = hyper.parameter
+        logger.info('='*30)
+        valid_accuracy = session_handler.train(i)
         logger.info("Valid Accuracy = {:.3f}".format(valid_accuracy))
-        session.visualize_training_process()
+        session_handler.visualize_training_process()
+        session_handler.close()
 
+        # Check accuracy and update parameter file if increased
         hyper.update_accuracy(valid_accuracy, data.sample_size(DataType.TEST))
         if hyper.is_accuracy_improved:
             hyper.update_file()
         else:
             logger.info("Keep: {} since accuracy did not improve!".format(files.hyper_parameter))
 
-        test_accuracy = session.test(i)
+        # Check test accuracy
+        logger.info('='*30)
+        test_accuracy = session_handler.test(i, DataType.TEST)
         logger.info('Test Accuracy = {:.3f}'.format(test_accuracy))
 
-        # Generate new random parameter set
-        hyper.next_parameter_set()
+        # Check internet accuracy
+        logger.info('='*30)
+        internet_accuracy = session_handler.test(i, DataType.INTERNET)
+        logger.info('Internet Accuracy = {:.3f}'.format(internet_accuracy))
 
 
 if __name__ == "__main__":

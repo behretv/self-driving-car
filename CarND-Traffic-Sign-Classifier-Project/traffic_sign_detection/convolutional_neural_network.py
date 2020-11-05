@@ -18,6 +18,7 @@ class ConvolutionalNeuralNetwork:
         self.__data = data
         self.__params = hyper.parameter
         self.__tf_one_hot_labels = tf.one_hot(self.tf_labels, data.n_labels)
+        self.__prediction = None
         self.__accuracy = None
         self.__logits = None
         self.__optimizer = None
@@ -27,6 +28,11 @@ class ConvolutionalNeuralNetwork:
     def optimizer(self):
         assert self.__optimizer is not None
         return self.__optimizer
+
+    @property
+    def prediction(self):
+        assert self.__prediction is not None
+        return self.__prediction
 
     @property
     def accuracy(self):
@@ -43,6 +49,11 @@ class ConvolutionalNeuralNetwork:
         assert self.__params is not None
         return self.__params
 
+    @property
+    def logits(self):
+        assert self.__logits is not None
+        return self.__logits
+
     def generate_cost(self):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
         self.__cost = tf.reduce_mean(cross_entropy)
@@ -52,8 +63,8 @@ class ConvolutionalNeuralNetwork:
         self.__optimizer = optimizer.minimize(self.cost)
 
     def generate_accuracy(self):
-        prediction = tf.equal(tf.argmax(self.__logits, 1), tf.argmax(self.__tf_one_hot_labels, 1))
-        self.__accuracy = tf.reduce_mean(tf.cast(prediction, tf.float32))
+        self.__prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.__tf_one_hot_labels, 1))
+        self.__accuracy = tf.reduce_mean(tf.cast(self.prediction, tf.float32))
 
     def generate_network(self):
         layer_1 = self.__layer_convolution(layer=self.tf_features, out_depth=self.params.conv_depth[0])
