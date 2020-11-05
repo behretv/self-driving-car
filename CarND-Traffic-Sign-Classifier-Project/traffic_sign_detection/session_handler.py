@@ -60,6 +60,11 @@ class SessionHandler:
         assert self.__session is not None
         return self.__session
 
+    @property
+    def valid_accuracy(self):
+        assert len(self.list_total_valid_accuracy) > 0
+        return self.list_total_valid_accuracy[-1]
+
     @session.setter
     def session(self, value):
         assert value is not None
@@ -85,9 +90,31 @@ class SessionHandler:
         start = i * self.params.batch_size
         return start, start + self.params.batch_size
 
-    def train(self):
-        self.__logger.info("Training...")
+    def train_only(self):
+        feature_train, label_train = self.__data.shuffled_data(DataType.TRAIN)
+        feature_valid, label_valid = self.__data.shuffled_data(DataType.VALID)
+        n_train_batches = self.__data.number_of_batches(DataType.TRAIN, self.params.batch_size)
+        n_valid_batches = self.__data.number_of_batches(DataType.VALID, self.params.batch_size)
 
+        self.__init_session()
+
+        for i in range(self.params.epochs):
+            # Progress bar
+            batches_pbar = tqdm(range(n_train_batches), desc=self.__progress_msg(i), unit='batches')
+            feature_train, label_train = shuffle(feature_train, label_train)
+
+            for batch_i in batches_pbar:
+                batch_range = self.__extract_batch_ranger(batch_i)
+                train_batch = self.__generate_feed_dict(feature_train, label_train, batch_range, self.params.drop_out)
+                self.__session.run(self.cnn.optimizer, feed_dict=train_batch)
+
+            tmp_valid_accuracy = self.accuracy_running(feature_valid, label_valid, n_valid_batches)
+            self.list_total_valid_accuracy.append(tmp_valid_accuracy)
+
+            if not self.__is_accuracy_improved():
+                break
+
+    def train(self):
         feature_train, label_train = self.__data.shuffled_data(DataType.TRAIN)
         feature_valid, label_valid = self.__data.shuffled_data(DataType.VALID)
         n_train_batches = self.__data.number_of_batches(DataType.TRAIN, self.params.batch_size)
@@ -124,10 +151,8 @@ class SessionHandler:
                     self.list_loss.append(loss)
 
             self.list_total_valid_accuracy.append(self.accuracy_running(feature_valid, label_valid, n_valid_batches))
-            if not self.__is_accuracy_improved(self.list_total_valid_accuracy):
+            if not self.__is_accuracy_improved():
                 break
-
-        return self.list_total_valid_accuracy[-1]
 
     def save_session(self):
         self.__logger.info("Save model:")
@@ -175,7 +200,8 @@ class SessionHandler:
             saver.restore(sess, self.file)
             feed_dict = self.__generate_feed_dict(features, labels)
             softmax = sess.run(self.cnn.softmax, feed_dict)
-        return [softmax]
+            top3 = sess.run(tf.nn.top_k(tf.constant(softmax), k=3))
+        return top3
 
     def visualize_training_process(self):
         batches = self.list_batch
@@ -215,8 +241,8 @@ class SessionHandler:
             msg = 'Epoch {:>2}/{}'.format(i + 1, self.params.epochs)
         return msg
 
-    def __is_accuracy_improved(self, list_accuracy):
-        list_accuracy = np.array(list_accuracy)
+    def __is_accuracy_improved(self):
+        list_accuracy = np.array(self.list_total_valid_accuracy)
         is_improved = True
         if len(list_accuracy) > 3:
             mean_diff = np.mean(np.diff(list_accuracy[-4:]))

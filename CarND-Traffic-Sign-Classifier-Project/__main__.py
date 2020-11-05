@@ -23,7 +23,8 @@ def main():
     session_handler = SessionHandler(files, data)
     covnet = ConvolutionalNeuralNetwork(data, hyper)
 
-    for i in range(0, 1):
+    n = 10
+    for i in range(0, n):
         logger.info("%d # ITERATION \n\n", i)
 
         # Generate new random parameter set
@@ -33,17 +34,20 @@ def main():
         # 2 DNN
         covnet.params = hyper.parameter
         covnet.generate_network()
-        covnet.generate_cost()
-        covnet.generate_optimizer()
-        covnet.generate_accuracy()
+        covnet.generate_metrics()
 
         # 3 Run and save session
+        logger.info('='*30)
         session_handler.cnn = covnet
         session_handler.params = hyper.parameter
-        logger.info('='*30)
-        valid_accuracy = session_handler.train()
+        if i < n:
+            session_handler.train_only()
+        else:
+            session_handler.train()
+            session_handler.visualize_training_process()
+
+        valid_accuracy = session_handler.valid_accuracy
         logger.info("Valid Accuracy = {:.3f}".format(valid_accuracy))
-        session_handler.visualize_training_process()
 
         # Check accuracy and update parameter file if increased
         hyper.update_accuracy(valid_accuracy, data.sample_size(DataType.TEST))

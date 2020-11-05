@@ -23,10 +23,7 @@ class ConvolutionalNeuralNetwork:
         self.__logits = None
         self.__optimizer = None
         self.__cost = None
-
-        self.\
-            softmax = None
-        self.cross_entropy = None
+        self.__softmax = None
 
     @property
     def optimizer(self):
@@ -59,21 +56,31 @@ class ConvolutionalNeuralNetwork:
         self.__params = value
 
     @property
+    def softmax(self):
+        assert self.__softmax is not None
+        return self.__softmax
+
+    @property
     def logits(self):
         assert self.__logits is not None
         return self.__logits
 
-    def generate_cost(self):
-        self.softmax = tf.nn.softmax(logits=self.__logits)
-        self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
-        self.__cost = tf.reduce_mean(self.cross_entropy)
+    def generate_metrics(self):
+        # Softmax
+        self.__softmax = tf.nn.softmax(logits=self.logits)
 
-    def generate_optimizer(self):
+        # Cost
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.logits)
+        self.__cost = tf.reduce_mean(cross_entropy)
+
+        # Optimizer
         optimizer = tf.train.AdamOptimizer(learning_rate=self.params.learning_rate)
         self.__optimizer = optimizer.minimize(self.cost)
 
-    def generate_accuracy(self):
+        # Prediction
         self.__prediction = tf.argmax(self.logits, 1)
+
+        # Accuracy
         binary_predictions = tf.equal(self.prediction, tf.argmax(self.__tf_one_hot_labels, 1))
         self.__accuracy = tf.reduce_mean(tf.cast(binary_predictions, tf.float32))
 
