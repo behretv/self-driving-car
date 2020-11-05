@@ -27,7 +27,7 @@ class SessionHandler:
         self.list_valid_accuracy = []
         self.list_loss = []
         self.list_batch = []
-        self.log_batch_step = 50
+        self.log_batch_step = 500
 
     @property
     def cnn(self):
@@ -50,6 +50,12 @@ class SessionHandler:
         self.__params = value
 
     @property
+    def file(self):
+        assert self.__file is not None
+        self.__logger.info("Restore model: {}".format(self.__file))
+        return self.__file
+
+    @property
     def session(self):
         assert self.__session is not None
         return self.__session
@@ -69,18 +75,18 @@ class SessionHandler:
         self.session = tf.Session()
         self.session.run(tf.global_variables_initializer())
 
-    def __extract_batch_ranger(self, i):
-        start = i * self.params.batch_size
-        return start, start + self.params.batch_size
-
-    def train(self, step):
-        self.__logger.info("{}# Training...".format(id))
-
         self.list_total_valid_accuracy = []
         self.list_train_accuracy = []
         self.list_valid_accuracy = []
         self.list_loss = []
         self.list_batch = []
+
+    def __extract_batch_ranger(self, i):
+        start = i * self.params.batch_size
+        return start, start + self.params.batch_size
+
+    def train(self):
+        self.__logger.info("Training...")
 
         feature_train, label_train = self.__data.shuffled_data(DataType.TRAIN)
         feature_valid, label_valid = self.__data.shuffled_data(DataType.VALID)
@@ -103,11 +109,11 @@ class SessionHandler:
                 valid_feed = self.__generate_feed_dict(feature_valid, label_valid, batch_range, 1.0)
 
                 self.__session.run(self.cnn.optimizer, feed_dict=train_batch)
-                loss = self.__session.run(self.cnn.cost, feed_dict=loss_batch)
 
                 # Log every 50 batches
                 if not batch_i % self.log_batch_step:
                     # Calculate Training and Validation accuracy
+                    loss = self.__session.run(self.cnn.cost, feed_dict=loss_batch)
                     train_accuracy = self.session.run(self.cnn.accuracy, feed_dict=loss_batch)
                     valid_accuracy = self.session.run(self.cnn.accuracy, feed_dict=valid_feed)
 
@@ -121,9 +127,11 @@ class SessionHandler:
             if not self.__is_accuracy_improved(self.list_total_valid_accuracy):
                 break
 
-        self.__save_session(step)
-
         return self.list_total_valid_accuracy[-1]
+
+    def save_session(self):
+        self.__logger.info("Save model:")
+        self.__saver.save(self.session, self.file)
 
     def accuracy_running(self, features, labels, number_of_batches):
         n_features = len(features)
@@ -137,30 +145,37 @@ class SessionHandler:
             total_accuracy += (tmp_accuracy * self.params.batch_size)
         return total_accuracy / n_features
 
-    def accuracy_restored(self, step, datatype: DataType):
-        filename = self.__file + str(step)
-        self.__logger.info("Restore model: {}".format(filename))
+    def accuracy_restored(self, datatype: DataType):
         features, labels = self.__data.shuffled_data(datatype)
 
         # Runs saved session
         saver = tf.train.Saver()
         with tf.Session() as sess:
-            saver.restore(sess, filename)
+            saver.restore(sess, self.file)
             feed_dict = self.__generate_feed_dict(features, labels)
             return sess.run(self.cnn.accuracy, feed_dict=feed_dict)
 
-    def prediction_restored(self, step, datatype: DataType):
-        filename = self.__file + str(step)
-        self.__logger.info("Restore model: {}".format(filename))
+    def prediction_restored(self, datatype: DataType):
         features, labels = self.__data.shuffled_data(datatype)
 
         # Runs saved session
         saver = tf.train.Saver()
         with tf.Session() as sess:
-            saver.restore(sess, filename)
+            saver.restore(sess, self.file)
             feed_dict = self.__generate_feed_dict(features, labels)
             prediction = sess.run(self.cnn.prediction, feed_dict=feed_dict)
         return {'labels': labels, 'prediction': prediction}
+
+    def softmax_restored(self, datatype: DataType):
+        features, labels = self.__data.shuffled_data(datatype)
+
+        # Runs saved session
+        saver = tf.train.Saver()
+        with tf.Session() as sess:
+            saver.restore(sess, self.file)
+            feed_dict = self.__generate_feed_dict(features, labels)
+            softmax = sess.run(self.cnn.softmax, feed_dict)
+        return [softmax]
 
     def visualize_training_process(self):
         batches = self.list_batch
@@ -209,9 +224,4 @@ class SessionHandler:
                 self.__logger.info("Abort, accuracy did not increase enough!")
                 is_improved = False
         return is_improved
-
-    def __save_session(self, step):
-        filename = self.__file + str(step)
-        self.__logger.info("Save model as: {}".format(filename))
-        self.__saver.save(self.session, filename)
 

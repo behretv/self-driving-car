@@ -24,6 +24,10 @@ class ConvolutionalNeuralNetwork:
         self.__optimizer = None
         self.__cost = None
 
+        self.\
+            softmax = None
+        self.cross_entropy = None
+
     @property
     def optimizer(self):
         assert self.__optimizer is not None
@@ -60,8 +64,9 @@ class ConvolutionalNeuralNetwork:
         return self.__logits
 
     def generate_cost(self):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
-        self.__cost = tf.reduce_mean(cross_entropy)
+        self.softmax = tf.nn.softmax(logits=self.__logits)
+        self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.__tf_one_hot_labels, logits=self.__logits)
+        self.__cost = tf.reduce_mean(self.cross_entropy)
 
     def generate_optimizer(self):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.params.learning_rate)
