@@ -1,1 +1,1 @@
-{"batch_size": 105, "epochs": 10, "accuracy": 0.93, "learning_rate": 0.004}
+{"batch_size": 105, "accuracy": 0.94, "learning_rate": 0.004, "epochs": 10}

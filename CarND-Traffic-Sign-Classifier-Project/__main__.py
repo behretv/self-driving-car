@@ -21,6 +21,7 @@ def main():
     #data.visualize_labels_histogram()
     hyper = HyperParameterHandler(files)
     session_handler = SessionHandler(files, data)
+    covnet = ConvolutionalNeuralNetwork(data, hyper)
 
     for i in range(0, 1):
         logger.info("%d # ITERATION \n\n", i)
@@ -30,7 +31,7 @@ def main():
             hyper.next_parameter_set()
 
         # 2 DNN
-        covnet = ConvolutionalNeuralNetwork(data, hyper)
+        covnet.params = hyper.parameter
         covnet.generate_network()
         covnet.generate_cost()
         covnet.generate_optimizer()
@@ -54,13 +55,15 @@ def main():
 
         # Check test accuracy
         logger.info('='*30)
-        test_accuracy = session_handler.test(i, DataType.TEST)
+        test_accuracy = session_handler.accuracy_restored(i, DataType.TEST)
         logger.info('Test Accuracy = {:.3f}'.format(test_accuracy))
 
         # Check internet accuracy
         logger.info('='*30)
-        internet_accuracy = session_handler.test(i, DataType.INTERNET)
+        internet_accuracy = session_handler.accuracy_restored(i, DataType.INTERNET)
         logger.info('Internet Accuracy = {:.3f}'.format(internet_accuracy))
+        internet_prediction = session_handler.prediction_restored(i, DataType.INTERNET)
+        logger.info('Internet Accuracy = {}'.format(internet_prediction))
 
 
 if __name__ == "__main__":

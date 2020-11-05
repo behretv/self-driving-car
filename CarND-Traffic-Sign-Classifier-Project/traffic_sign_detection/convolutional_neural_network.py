@@ -49,6 +49,11 @@ class ConvolutionalNeuralNetwork:
         assert self.__params is not None
         return self.__params
 
+    @params.setter
+    def params(self, value):
+        assert value is not None
+        self.__params = value
+
     @property
     def logits(self):
         assert self.__logits is not None
@@ -63,8 +68,9 @@ class ConvolutionalNeuralNetwork:
         self.__optimizer = optimizer.minimize(self.cost)
 
     def generate_accuracy(self):
-        self.__prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.__tf_one_hot_labels, 1))
-        self.__accuracy = tf.reduce_mean(tf.cast(self.prediction, tf.float32))
+        self.__prediction = tf.argmax(self.logits, 1)
+        binary_predictions = tf.equal(self.prediction, tf.argmax(self.__tf_one_hot_labels, 1))
+        self.__accuracy = tf.reduce_mean(tf.cast(binary_predictions, tf.float32))
 
     def generate_network(self):
         layer_1 = self.__layer_convolution(layer=self.tf_features, out_depth=self.params.conv_depth[0])
