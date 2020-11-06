@@ -2,8 +2,8 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.contrib.layers import flatten
-from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
-from traffic_sign_detection.data_handler import DataHandler
+from src.traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
+from src.traffic_sign_detection.data_handler import DataHandler
 
 
 class ConvolutionalNeuralNetwork:

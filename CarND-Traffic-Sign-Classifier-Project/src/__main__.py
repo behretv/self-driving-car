@@ -1,11 +1,11 @@
 import logging
 import coloredlogs
 
-from traffic_sign_detection.data_handler import DataHandler, DataType
-from traffic_sign_detection.convolutional_neural_network import ConvolutionalNeuralNetwork
-from traffic_sign_detection.file_handler import FileHandler
-from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
-from traffic_sign_detection.session_handler import SessionHandler
+from src.traffic_sign_detection.data_handler import DataHandler, DataType
+from src.traffic_sign_detection.convolutional_neural_network import ConvolutionalNeuralNetwork
+from src.traffic_sign_detection.file_handler import FileHandler
+from src.traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler
+from src.traffic_sign_detection.session_handler import SessionHandler
 
 
 def main():
@@ -55,7 +55,7 @@ def main():
             hyper.update_file()
             session_handler.save_session()
 
-            # Check test accuracy
+            # Check tests accuracy
             logger.info('=' * 30)
             test_accuracy = session_handler.accuracy_restored(DataType.TEST)
             logger.info('Test Accuracy = {:.3f}'.format(test_accuracy))

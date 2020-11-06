@@ -1,9 +1,9 @@
-""" File to write unit test for the hyper parameter handler """
+""" File to write unit tests for the hyper parameter handler """
 import pytest
 import json
 
-from traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler, Parameters
-from traffic_sign_detection.file_handler import FileHandler
+from src.traffic_sign_detection.hyper_parameter_handler import HyperParameterHandler, Parameters
+from src.traffic_sign_detection.file_handler import FileHandler
 
 
 @pytest.mark.parametrize(

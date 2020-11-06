@@ -4,8 +4,8 @@ import numpy as np
 from PIL import Image
 
 
-PATH_DATA = 'images/internet/test'
-PICKLE_FILE = 'data/internet.p'
+PATH_DATA = '../images/internet/test'
+PICKLE_FILE = '../data/internet.p'
 
 files = os.listdir(PATH_DATA)
 

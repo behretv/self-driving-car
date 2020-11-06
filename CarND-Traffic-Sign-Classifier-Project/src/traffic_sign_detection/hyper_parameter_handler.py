@@ -2,8 +2,8 @@
 import json
 import logging
 
-from traffic_sign_detection.file_handler import FileHandler
-from traffic_sign_detection.parameters import Parameters
+from src.traffic_sign_detection.file_handler import FileHandler
+from src.traffic_sign_detection.parameters import Parameters
 
 
 class HyperParameterHandler:

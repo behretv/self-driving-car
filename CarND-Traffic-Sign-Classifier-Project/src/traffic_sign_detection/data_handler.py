@@ -11,12 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn import utils
-from traffic_sign_detection.file_handler import FileHandler
+from src.traffic_sign_detection.file_handler import FileHandler
 
 
 class DataType(enum.Enum):
     TRAIN = 'train'
-    TEST = 'test'
+    TEST = 'tests'
     VALID = 'valid'
     INTERNET = 'internet'
 
@@ -122,7 +122,7 @@ class DataHandler:
         bins = range(0, self.n_labels)
 
         plt.figure(figsize=(15, 10))
-        plt.hist([labels_train, labels_test, labels_valid], bins, label=['training', 'test', 'validation'])
+        plt.hist([labels_train, labels_test, labels_valid], bins, label=['training', 'tests', 'validation'])
         plt.title("Labels Histogram")
         plt.xlim(bins[0], bins[-1])
         plt.legend(loc='upper center')
@@ -158,7 +158,7 @@ class DataHandler:
     def __normalize_grayscale(self, key: DataType):
         """
         Normalize the image parameter with Min-Max scaling to a range of [0.1, 0.9]
-        :param key: 'test', 'train' or 'valid'
+        :param key: 'tests', 'train' or 'valid'
         :return: Normalized image parameter
         """
         a = 0.1

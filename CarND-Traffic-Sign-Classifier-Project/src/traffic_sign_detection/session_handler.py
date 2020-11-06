@@ -1,6 +1,5 @@
-""" This files handles the sessions, to train and test a neural network """
+""" This files handles the sessions, to train and tests a neural network """
 import logging
-import math
 
 import numpy as np
 import tensorflow as tf
@@ -8,8 +7,8 @@ import matplotlib.pyplot as plt
 
 from sklearn.utils import shuffle
 from tqdm import tqdm
-from traffic_sign_detection.data_handler import DataType, DataHandler
-from traffic_sign_detection.file_handler import FileHandler
+from src.traffic_sign_detection.data_handler import DataType, DataHandler
+from src.traffic_sign_detection.file_handler import FileHandler
 
 
 class SessionHandler:
