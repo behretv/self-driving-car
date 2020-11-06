@@ -201,7 +201,7 @@ class SessionHandler:
             feed_dict = self.__generate_feed_dict(features, labels)
             softmax = sess.run(self.cnn.softmax, feed_dict)
             top3 = sess.run(tf.nn.top_k(tf.constant(softmax), k=3))
-        return top3
+        return top3, labels
 
     def visualize_training_process(self):
         batches = self.list_batch
