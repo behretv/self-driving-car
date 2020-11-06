@@ -10,8 +10,10 @@ from traffic_sign_detection.file_handler import FileHandler
     "test_input, expected",
     [
         (
-            {'epochs': 11, 'batch_size': 129, 'learning_rate': 0.002, 'accuracy': 1.0},
-            {'epochs': 11, 'batch_size': 129, 'learning_rate': 0.002, 'accuracy': 0.0}
+            {"drop_out": 0.5, "out_size": [111, 88], "batch_size": 119, "learning_rate": 0.001, "cnn_filter_size": 5,
+             "sigma": 0.1, "epochs": 11, "accuracy": 0.947, "cnn_depth": [6, 16]},
+            {"drop_out": 0.5, "out_size": [111, 88], "batch_size": 119, "learning_rate": 0.001, "cnn_filter_size": 5,
+             "sigma": 0.1, "epochs": 11, "accuracy": 0.947, "cnn_depth":[6, 16]}
         )
     ]
 )

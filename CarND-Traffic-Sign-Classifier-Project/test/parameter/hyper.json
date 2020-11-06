@@ -1,1 +1,1 @@
-{"epochs": 10, "batch_size": 128, "learning_rate": 0.001, "accuracy": 0.0}
+{"drop_out":  0.5, "out_size": [111, 88], "batch_size": 119, "learning_rate": 0.002697919364586032, "cnn_filter_size": 4, "sigma": 0.1, "epochs": 11, "accuracy": 0.947, "cnn_depth": [6, 16]}
