@@ -93,4 +93,3 @@ class Pipeline:
         unwarped = cv2.warpPerspective(color_warp, minv, combined.shape[::-1], flags=cv2.INTER_LINEAR)
 
         return weighted_img(unwarped, self.img_color)
-

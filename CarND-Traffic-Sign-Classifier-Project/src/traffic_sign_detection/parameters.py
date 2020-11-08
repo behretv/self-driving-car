@@ -17,8 +17,6 @@ class Parameters:
         self.sigma = tmp_dict['sigma']
         self.drop_out = tmp_dict['drop_out']
 
-        test = tmp_dict['out_size']
-
         # Constant parameters
         self.mu = 0
         self.conv_strides = [1, 1, 1, 1]

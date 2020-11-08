@@ -24,4 +24,3 @@ min_values = data.min(axis=0, initial=0)
 max_values = data.max(axis=0, initial=0)
 print(min_values)
 print(max_values)
-

@@ -249,4 +249,3 @@ class SessionHandler:
                 self.__logger.info("Abort, accuracy did not increase enough!")
                 is_improved = False
         return is_improved
-

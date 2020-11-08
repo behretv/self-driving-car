@@ -17,4 +17,3 @@ for i in range(0, 8):
     pipeline_img.warp_coordinates(img)
     pipeline_img.process_image(img, './output_images/{}.png'.format(i), i)
     pipeline_img.process_image(img, './output_images/{}.png'.format(i), i)
-

@@ -115,15 +115,9 @@ class PolyFitToLane:
 
     def search_around_poly(self):
         # Set the area of search based on activated x-values
-        x_left = self.poly_left[0] * (self.nonzeroy ** 2) + \
-                 self.poly_left[1] * self.nonzeroy + \
-                 self.poly_left[2]
-        x_right = self.poly_right[0] * (self.nonzeroy ** 2) + \
-                  self.poly_right[1] * self.nonzeroy + \
-                  self.poly_right[2]
+        x_left = self.poly_left[0] * (self.nonzeroy ** 2) + self.poly_left[1] * self.nonzeroy + self.poly_left[2]
+        x_right = self.poly_right[0] * (self.nonzeroy ** 2) + self.poly_right[1] * self.nonzeroy + self.poly_right[2]
 
-        #left_roi = (np.min(x_right) > self.nonzerox) & (self.nonzerox < self.img_sz[1]//2 + 100)
-        #right_roi = (np.max(x_left) < self.nonzerox) & (self.nonzerox > self.img_sz[1]//2 - 100)
         left_roi = (np.min(x_right) + 100 > self.nonzerox)
         right_roi = (np.max(x_left) - 100 < self.nonzerox)
         self.lane_inds_left = (self.nonzerox > (x_left - self.margin_poly)) & \
@@ -194,4 +188,3 @@ class PolyFitToLane:
         except ValueError:
             # Avoids an error if the above is not implemented fully
             pass
-

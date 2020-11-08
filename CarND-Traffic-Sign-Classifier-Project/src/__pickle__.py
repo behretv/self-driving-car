@@ -1,3 +1,7 @@
+"""
+Script to convert images to pickle data files
+"""
+
 import os
 import pickle
 import numpy as np
@@ -7,28 +11,27 @@ from PIL import Image
 PATH_DATA = '../images/internet/test'
 PICKLE_FILE = '../data/internet.p'
 
-files = os.listdir(PATH_DATA)
+FILES = os.listdir(PATH_DATA)
 
-features = np.array([])
-labels = np.array([])
-for file in files:
+FEATURES = np.array([])
+LABELS = np.array([])
+
+for file in FILES:
     feature = np.array(Image.open(os.path.join(PATH_DATA, file)))
     label = file[6:8]
-    features = np.append(features, feature).reshape(-1, 32, 32, 3)
-    labels = np.append(labels, int(label))
+    FEATURES = np.append(FEATURES, feature).reshape(-1, 32, 32, 3)
+    LABELS = np.append(LABELS, int(label))
 
-data = {'features': features, 'labels': labels}
+DATA = {'features': FEATURES, 'labels': LABELS}
 
 with open(PICKLE_FILE, 'wb') as f:
-    pickle.dump(data, f)
+    pickle.dump(DATA, f)
 
 with open(PICKLE_FILE, 'rb') as f:
-    new_data = pickle.load(f)
+    NEW_DATA = pickle.load(f)
 
-assert new_data is not None
-assert 'features' in new_data
-assert 'labels' in new_data
+assert NEW_DATA is not None
+assert 'features' in NEW_DATA
+assert 'labels' in NEW_DATA
 
 print("Creating pickle file done!")
-
-

@@ -9,4 +9,3 @@ class FileHandler:
         self.validation_file = 'data/tests.p'
         self.testing_file = 'data/valid.p'
         self.internet_file = 'data/internet.p'
-

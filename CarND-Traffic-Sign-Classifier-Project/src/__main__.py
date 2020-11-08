@@ -16,9 +16,9 @@ def main():
     # 1 Data and hyper-parameter
     files = FileHandler()
     data = DataHandler(files)
-    #data.visualize_random_image()
+    # data.visualize_random_image()
     data.process()
-    #data.visualize_labels_histogram()
+    # data.visualize_labels_histogram()
     hyper = HyperParameterHandler(files)
     session_handler = SessionHandler(files, data)
     covnet = ConvolutionalNeuralNetwork(data, hyper)
