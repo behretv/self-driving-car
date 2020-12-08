@@ -1,3 +1,5 @@
+#!/bin/bash
+
 sudo apt-get install libuv1-dev libssl-dev
 git clone https://github.com/uWebSockets/uWebSockets 
 cd uWebSockets
