@@ -128,7 +128,6 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       dt_4 / 4 * noise_ay, 0, dt_3 / 2 * noise_ay, dt_3 / 2 * noise_ax, 0,
       dt_2 * noise_ax, 0, 0, dt_3 / 2 * noise_ay, 0, dt_2 * noise_ay;
 
-  cout << "Predict..." << endl;
   ekf_.Predict();
 
   /**
@@ -141,7 +140,6 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    * - Update the state and covariance matrices.
    */
 
-  cout << "Update..." << endl;
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // TODO: Radar updates
     ekf_.R_ = R_radar_;
