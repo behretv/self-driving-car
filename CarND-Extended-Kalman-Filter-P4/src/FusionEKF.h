@@ -44,6 +44,11 @@ class FusionEKF {
   Eigen::MatrixXd R_radar_;
   Eigen::MatrixXd H_laser_;
   Eigen::MatrixXd Hj_;
+
+  MeasurementPackage::SensorType sensor_type_;
+
+  // print function
+  void PrintStateVectorX();  
 };
 
 #endif // FusionEKF_H_
