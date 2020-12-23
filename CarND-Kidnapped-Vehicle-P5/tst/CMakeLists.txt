@@ -13,13 +13,13 @@ if(GTest_FOUND)
     include_directories(${GTEST_INCLUDE_DIRS})
 
     # Tests need to be added as executables first
-    add_executable(testlib test.cpp)
+    add_executable(particle_filter_tests test.cpp)
 
     # Should be linked to the main library, as well as the Catch2 testing library
-    target_link_libraries(testlib PRIVATE ${GTEST_LIBRARIES} pthread particle_filter_lib)
+    target_link_libraries(particle_filter_tests PRIVATE ${GTEST_LIBRARIES} pthread particle_filter_lib)
 
     # If you register a test, then ctest and make test will run it.
     # You can also run examples and check the output, as well.
-    add_test(NAME testlibtest COMMAND testlib) # Command can be a target
+    add_test(NAME testlibtest COMMAND particle_filter_tests) # Command can be a target
 
 endif(GTest_FOUND)
