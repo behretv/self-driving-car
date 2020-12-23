@@ -1,12 +1,12 @@
 #include "gtest/gtest.h"
-#include "particle_filter.h"
+#include "../src/particle_filter.h"
 
-TEST(blaTest, test1) {
+TEST(GetAssociations_Test, test1) {
     //arrange
     //act
     //assert
     Particle p;
-    p.x = 1.0;
+    p.associations = {1, 2, 3};
     ParticleFilter pf = ParticleFilter();
-    EXPECT_EQ(pf.getAssociations(p),  "");
+    EXPECT_EQ(pf.getAssociations(p),  "1 2 3");
 }

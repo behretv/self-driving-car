@@ -13,7 +13,10 @@ if(GTest_FOUND)
     include_directories(${GTEST_INCLUDE_DIRS})
 
     # Tests need to be added as executables first
-    add_executable(particle_filter_tests test.cpp)
+    add_executable(particle_filter_tests
+        test.cpp
+        particle_filter_test.cpp
+        )
 
     # Should be linked to the main library, as well as the Catch2 testing library
     target_link_libraries(particle_filter_tests PRIVATE ${GTEST_LIBRARIES} pthread particle_filter_lib)
