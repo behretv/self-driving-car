@@ -5,7 +5,7 @@
  * Author: Tiffany Huang
  */
 
-#include "particle_filter.h"
+#include "./particle_filter.h"
 
 #include <math.h>
 #include <algorithm>
@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "helper_functions.h"
+#include "./helper_functions.h"
 
 using std::string;
 using std::vector;
@@ -31,8 +31,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    *   (and others in this file).
    */
   num_particles = 0;  // TODO: Set the number of particles
-  Particle particle = Particle();
+  auto particle = Particle();
   particle.id = 0;
+  particle.x = x;
+  particle.y = y;
+  particle.theta = theta;
   particles.push_back(particle);
 }
 
@@ -45,11 +48,11 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
-
+    std::cout << "prediction" << std::endl;
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
-                                     vector<LandmarkObs>& observations) {
+                                     vector<LandmarkObs>* observations) {
   /**
    * TODO: Find the predicted measurement that is closest to each
    *   observed measurement and assign the observed measurement to this
@@ -58,7 +61,6 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper
    *   during the updateWeights phase.
    */
-
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -77,7 +79,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
-
 }
 
 void ParticleFilter::resample() {
@@ -87,10 +88,9 @@ void ParticleFilter::resample() {
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
-
 }
 
-void ParticleFilter::SetAssociations(Particle& particle,
+void ParticleFilter::SetAssociations(Particle* particle,
                                      const vector<int>& associations,
                                      const vector<double>& sense_x,
                                      const vector<double>& sense_y) {
@@ -99,9 +99,9 @@ void ParticleFilter::SetAssociations(Particle& particle,
   // associations: The landmark id that goes along with each listed association
   // sense_x: the associations x mapping already converted to world coordinates
   // sense_y: the associations y mapping already converted to world coordinates
-  particle.associations= associations;
-  particle.sense_x = sense_x;
-  particle.sense_y = sense_y;
+  particle->associations = associations;
+  particle->sense_x = sense_x;
+  particle->sense_y = sense_y;
 }
 
 string ParticleFilter::getAssociations(Particle best) {
