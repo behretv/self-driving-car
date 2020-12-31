@@ -22,21 +22,40 @@ using std::string;
 using std::vector;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-  /**
-   * TODO: Set the number of particles. Initialize all particles to
-   *   first position (based on estimates of x, y, theta and their uncertainties
-   *   from GPS) and all weights to 1.
-   * TODO: Add random Gaussian noise to each particle.
-   * NOTE: Consult particle_filter.h for more information about this method
-   *   (and others in this file).
-   */
-  num_particles = 0;  // TODO: Set the number of particles
-  auto particle = Particle();
-  particle.id = 0;
-  particle.x = x;
-  particle.y = y;
-  particle.theta = theta;
-  particles.push_back(particle);
+  num_particles = 100;
+
+  /*
+   * Set the number of particles. Initialize all particles to
+   * first position (based on estimates of x, y, theta and their uncertainties
+   * from GPS) and all weights to 1.
+  */
+  for(int i = 0; i < num_particles; i++){
+    auto particle = Particle();
+    particle.id = i;
+    particle.x = x;
+    particle.y = y;
+    particle.theta = theta;
+    particle.weight = 1;
+    particles.push_back(particle);
+  }
+
+  /* Gaussian distributions */
+  double std_x = std[0];
+  double std_y = std[1];
+  double std_theta = std[2];
+  std::normal_distribution<double> dist_x(x, std_x);
+  std::normal_distribution<double> dist_y(y, std_y);
+  std::normal_distribution<double> dist_theta(theta, std_theta);
+
+  /*
+   * Add random Gaussian noise to each particle.
+  */
+  std::default_random_engine gen;
+  for(auto& p : particles){
+    p.x = dist_x(gen);
+    p.y = dist_y(gen);
+    p.theta = dist_theta(gen);
+  }
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[],
