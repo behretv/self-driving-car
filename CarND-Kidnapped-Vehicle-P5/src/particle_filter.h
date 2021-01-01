@@ -29,7 +29,7 @@ class ParticleFilter {
  public:
   // Constructor
   // @param num_particles Number of particles
-  ParticleFilter() : num_particles(0), is_initialized(false) {}
+  ParticleFilter() : nParticles_(0), isInitialized_(false) {}
 
   // Destructor
   ~ParticleFilter() {}
@@ -64,7 +64,7 @@ class ParticleFilter {
    * @param observations Vector of landmark observations
    */
   void dataAssociation(std::vector<LandmarkObs> predicted,
-                       std::vector<LandmarkObs>* observations);
+                       std::vector<LandmarkObs> observations);
 
   /**
    * updateWeights Updates the weights for each particle based on the likelihood
@@ -76,7 +76,7 @@ class ParticleFilter {
    * @param map Map class containing map landmarks
    */
   void updateWeights(double sensor_range, double std_landmark[],
-                     const std::vector<LandmarkObs> &observations,
+                     std::vector<LandmarkObs> &observations,
                      const Map &map_landmarks);
 
   /**
@@ -99,7 +99,7 @@ class ParticleFilter {
    * initialized Returns whether particle filter is initialized yet or not.
    */
   const bool initialized() const {
-    return is_initialized;
+    return isInitialized_;
   }
 
   /**
@@ -109,17 +109,23 @@ class ParticleFilter {
   std::string getSenseCoord(Particle best, std::string coord);
 
   // Set of current particles
-  std::vector<Particle> particles;
+  std::vector<Particle> particles_;
 
  private:
   // Number of particles to draw
-  int num_particles;
+  int nParticles_;
 
   // Flag, if filter is initialized
-  bool is_initialized;
+  bool isInitialized_;
 
   // Vector of weights of all particles
-  std::vector<double> weights;
+  std::vector<double> weights_;
+
+  /**
+   * Method to add gaussian noise to x, y and theta of each particle
+   * @param std[] Array of dimension 3 [standard deviation of x [m],
+  */
+  void AddGaussianNoise(double std[]);
 };
 
 #endif  // SRC_PARTICLE_FILTER_H_
