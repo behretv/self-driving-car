@@ -186,42 +186,37 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight.
-	// NOTE: You may find std::discrete_distribution helpful here.
-	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-
-  // Get weights and max weight.
-  vector<double> weights;
-  double maxWeight = numeric_limits<double>::min();
-  for(int i = 0; i < num_particles; i++) {
-    weights.push_back(particles[i].weight);
-    if ( particles[i].weight > maxWeight ) {
-      maxWeight = particles[i].weight;
+/* Extracting weights */
+  double max_weights = std::numeric_limits<double>::min();
+  std::vector<double> weights;
+  for(auto& p : particles){
+    weights.push_back(p.weight);
+    if(p.weight > max_weights){
+      max_weights = p.weight;
     }
   }
 
-  // Creating distributions.
-  uniform_real_distribution<double> distDouble(0.0, maxWeight);
-  uniform_int_distribution<int> distInt(0, num_particles - 1);
+  /* Discrete distribution */
+  std::default_random_engine gen;
+  std::uniform_int_distribution<int> dist_i(0, num_particles);
+  std::uniform_real_distribution<double> dist_d(0.0, max_weights);
+  int idx = dist_i(gen);
+  double weights_theshold = 0.0;
 
-  // Generating index.
-  int index = distInt(gen);
-
-  double beta = 0.0;
-
-  // the wheel
-  vector<Particle> resampledParticles;
-  for(int i = 0; i < num_particles; i++) {
-    beta += distDouble(gen) * 2.0;
-    while( beta > weights[index]) {
-      beta -= weights[index];
-      index = (index + 1) % num_particles;
+  std::vector<Particle> resampled_particles;
+  unsigned int tmp_n_particles = num_particles;
+  while (tmp_n_particles)
+  {
+    weights_theshold += dist_d(gen) * 2;
+    while(weights_theshold > weights[idx]){
+      weights_theshold -= weights[idx];
+      idx = (idx + 1) % num_particles;
     }
-    resampledParticles.push_back(particles[index]);
+    resampled_particles.push_back(particles[idx]);
+    tmp_n_particles--;
   }
 
-  particles = resampledParticles;
-}
+  particles = resampled_particles;}
 
 void ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
 {
