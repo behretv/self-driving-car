@@ -116,71 +116,52 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
-  double stdLandmarkRange = std_landmark[0];
-  double stdLandmarkBearing = std_landmark[1];
+  double std_xy = 1/(2*M_PI*std_landmark[0]*std_landmark[1]);
+  double std_xx = 1/(2*std_landmark[0]*std_landmark[0]);
+  double std_yy = 1/(2*std_landmark[1]*std_landmark[1]);
 
   for (int i = 0; i < num_particles; i++) {
+    /* Temporrary variables */
+    Particle& p = particles[i];
+    double theta = p.theta;
+    double x = p.x;
+    double y = p.y;
 
-    double x = particles[i].x;
-    double y = particles[i].y;
-    double theta = particles[i].theta;
-    // Find landmarks in particle's range.
-    double sensor_range_2 = sensor_range * sensor_range;
-    vector<LandmarkObs> inRangeLandmarks;
-    for(unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) {
-      float landmarkX = map_landmarks.landmark_list[j].x_f;
-      float landmarkY = map_landmarks.landmark_list[j].y_f;
-      int id = map_landmarks.landmark_list[j].id_i;
-      double dX = x - landmarkX;
-      double dY = y - landmarkY;
-      if ( dX*dX + dY*dY <= sensor_range_2 ) {
-        inRangeLandmarks.push_back(LandmarkObs{ id, landmarkX, landmarkY });
+    /* Landmarks within sensor range */
+    vector<LandmarkObs> valid_landmarks;
+    for(auto& landmark : map_landmarks.landmark_list){
+      float x_land = landmark.x_f;
+      float y_land = landmark.y_f;
+      if(dist(x, y, x_land, y_land) < sensor_range){
+        valid_landmarks.push_back(LandmarkObs{landmark.id_i, x_land, y_land});
       }
     }
 
-    // Transform observation coordinates.
-    vector<LandmarkObs> mappedObservations;
-    for(unsigned int j = 0; j < observations.size(); j++) {
-      double xx = cos(theta)*observations[j].x - sin(theta)*observations[j].y + x;
-      double yy = sin(theta)*observations[j].x + cos(theta)*observations[j].y + y;
-      mappedObservations.push_back(LandmarkObs{ observations[j].id, xx, yy });
+    /* Tranformation */
+    vector<LandmarkObs> transformed_landmarks;
+    for(auto& o : observations){
+        double x_tran = x + (cos(theta) * o.x) - (sin(theta) * o.y);
+        double y_tran = y + (sin(theta) * o.x) + (cos(theta) * o.y);
+        transformed_landmarks.push_back(LandmarkObs{o.id, x_tran, y_tran});
     }
 
     // Observation association to landmark.
-    dataAssociation(inRangeLandmarks, mappedObservations);
+    dataAssociation(valid_landmarks, transformed_landmarks);
 
-    // Reseting weight.
-    particles[i].weight = 1.0;
-    // Calculate weights.
-    for(unsigned int j = 0; j < mappedObservations.size(); j++) {
-      double observationX = mappedObservations[j].x;
-      double observationY = mappedObservations[j].y;
-
-      int landmarkId = mappedObservations[j].id;
-
-      double landmarkX, landmarkY;
-      unsigned int k = 0;
-      unsigned int nLandmarks = inRangeLandmarks.size();
-      bool found = false;
-      while( !found && k < nLandmarks ) {
-        if ( inRangeLandmarks[k].id == landmarkId) {
-          found = true;
-          landmarkX = inRangeLandmarks[k].x;
-          landmarkY = inRangeLandmarks[k].y;
+    /* Calculating Weights */
+    p.weight = 1.0;
+    double weight = 1.0;
+    for(auto& tl : transformed_landmarks){
+      for(auto& vl : valid_landmarks){
+        if (tl.id == vl.id)
+        {
+          double dx = tl.x - vl.x;
+          double dy = tl.y - vl.y;
+          weight = std_xy * exp( - (dx*dx*std_xx + dy*dy*std_yy));
+          break;
         }
-        k++;
       }
-
-      // Calculating weight.
-      double dX = observationX - landmarkX;
-      double dY = observationY - landmarkY;
-
-      double weight = ( 1/(2*M_PI*stdLandmarkRange*stdLandmarkBearing)) * exp( -( dX*dX/(2*stdLandmarkRange*stdLandmarkRange) + (dY*dY/(2*stdLandmarkBearing*stdLandmarkBearing)) ) );
-      if (weight == 0) {
-        particles[i].weight *= EPS;
-      } else {
-        particles[i].weight *= weight;
-      }
+      p.weight *= (weight == 0 ? 0.00001 : weight);
     }
   }
 }
