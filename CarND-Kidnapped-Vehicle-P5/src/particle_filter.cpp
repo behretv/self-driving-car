@@ -80,38 +80,27 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
-	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the
-	//   observed measurement to this particular landmark.
-	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
-	//   implement this method and use it as a helper during the updateWeights phase.
-
-  unsigned int nObservations = observations.size();
-  unsigned int nPredictions = predicted.size();
-
-  for (unsigned int i = 0; i < nObservations; i++) { // For each observation
-
-    // Initialize min distance as a really big number.
-    double minDistance = numeric_limits<double>::max();
-
-    // Initialize the found map in something not possible.
-    int mapId = -1;
-
-    for (unsigned j = 0; j < nPredictions; j++ ) { // For each predition.
-
-      double xDistance = observations[i].x - predicted[j].x;
-      double yDistance = observations[i].y - predicted[j].y;
-
-      double distance = xDistance * xDistance + yDistance * yDistance;
-
-      // If the "distance" is less than min, stored the id and update min.
-      if ( distance < minDistance ) {
-        minDistance = distance;
-        mapId = predicted[j].id;
+/**
+   * TODO: Find the predicted measurement that is closest to each
+   *   observed measurement and assign the observed measurement to this
+   *   particular landmark.
+   * NOTE: this method will NOT be called by the grading code. But you will
+   *   probably find it useful to implement this method and use it as a helper
+   *   during the updateWeights phase.
+   */
+  // transform to map x coordinate
+  for(auto& o : observations){
+    int map_id = -1;
+    double min_distance = std::numeric_limits<double>::max();
+    for(auto& p : predicted){
+      double distance = dist(o.x, o.y, p.x, p.y);
+      if (distance < min_distance)
+      {
+        min_distance = distance;
+        map_id = p.id;
       }
     }
-
-    // Update the observation identifier.
-    observations[i].id = mapId;
+    o.id = map_id;
   }
 }
 
