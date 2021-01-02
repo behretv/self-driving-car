@@ -60,36 +60,23 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
-  // Extracting standard deviations
-  double std_x = std_pos[0];
-  double std_y = std_pos[1];
-  double std_theta = std_pos[2];
-
-  // Creating normal distributions
-  normal_distribution<double> dist_x(0, std_x);
-  normal_distribution<double> dist_y(0, std_y);
-  normal_distribution<double> dist_theta(0, std_theta);
-
   // Calculate new state.
-  for (int i = 0; i < num_particles; i++) {
+  for (auto& particle : particles) {
 
-  	double theta = particles[i].theta;
+  	double theta = particle.theta;
 
-    if ( fabs(yaw_rate) < EPS ) { // When yaw is not changing.
-      particles[i].x += velocity * delta_t * cos( theta );
-      particles[i].y += velocity * delta_t * sin( theta );
-      // yaw continue to be the same.
+    if ( fabs(yaw_rate) < EPS ) {
+      particle.x += velocity * delta_t * cos( theta );
+      particle.y += velocity * delta_t * sin( theta );
     } else {
-      particles[i].x += velocity / yaw_rate * ( sin( theta + yaw_rate * delta_t ) - sin( theta ) );
-      particles[i].y += velocity / yaw_rate * ( cos( theta ) - cos( theta + yaw_rate * delta_t ) );
-      particles[i].theta += yaw_rate * delta_t;
+      particle.x += velocity / yaw_rate * ( sin( theta + yaw_rate * delta_t ) - sin( theta ) );
+      particle.y += velocity / yaw_rate * ( cos( theta ) - cos( theta + yaw_rate * delta_t ) );
+      particle.theta += yaw_rate * delta_t;
     }
 
-    // Adding noise.
-    particles[i].x += dist_x(gen);
-    particles[i].y += dist_y(gen);
-    particles[i].theta += dist_theta(gen);
   }
+    // Adding noise.
+    AddGaussianNoise(std_pos);
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
