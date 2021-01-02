@@ -13,7 +13,6 @@
 #include <random>
 
 struct Particle {
-
 	int id;
 	double x;
 	double y;
