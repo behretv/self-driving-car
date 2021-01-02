@@ -19,39 +19,40 @@
 
 #define EPS 0.00001
 
-using namespace std;
+using std::string;
+using std::vector;
 
-void ParticleFilter::init(double x, double y, double theta, double std[]) {
+void ParticleFilter::init(double x, double y, double theta, double std[]){
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1.
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
-  if (is_initialized) {
+  if (isInitialized_){
     return;
   }
 
-  num_particles = 100;
+  nParticles_ = 100;
 
   /*
    * Set the number of particles. Initialize all particles to
    * first position (based on estimates of x, y, theta and their uncertainties
    * from GPS) and all weights to 1.
   */
-  for(int i = 0; i < num_particles; i++){
+  for(int i = 0; i < nParticles_; i++){
     auto particle = Particle();
     particle.id = i;
     particle.x = x;
     particle.y = y;
     particle.theta = theta;
     particle.weight = 1.0;
-    particles.push_back(particle);
+    particles_.push_back(particle);
   }
 
   /* Add Gaussian distributed noise to x, y and theta */
   AddGaussianNoise(std);
 
-  is_initialized = true;
+  isInitialized_ = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -61,7 +62,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
   // Calculate new state.
-  for (auto& particle : particles) {
+  for (auto& particle : particles_) {
 
   	double theta = particle.theta;
 
@@ -120,9 +121,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   double std_xx = 1/(2*std_landmark[0]*std_landmark[0]);
   double std_yy = 1/(2*std_landmark[1]*std_landmark[1]);
 
-  for (int i = 0; i < num_particles; i++) {
+  for (int i = 0; i < nParticles_; i++) {
     /* Temporrary variables */
-    Particle& p = particles[i];
+    Particle& p = particles_[i];
     double theta = p.theta;
     double x = p.x;
     double y = p.y;
@@ -170,7 +171,7 @@ void ParticleFilter::resample() {
 /* Extracting weights */
   double max_weights = std::numeric_limits<double>::min();
   std::vector<double> weights;
-  for(auto& p : particles){
+  for(auto& p : particles_){
     weights.push_back(p.weight);
     if(p.weight > max_weights){
       max_weights = p.weight;
@@ -178,26 +179,26 @@ void ParticleFilter::resample() {
   }
 
   /* Discrete distribution */
-  std::default_random_engine gen;
-  std::uniform_int_distribution<int> dist_i(0, num_particles);
+  std::default_random_engine gen_;
+  std::uniform_int_distribution<int> dist_i(0, nParticles_);
   std::uniform_real_distribution<double> dist_d(0.0, max_weights);
-  int idx = dist_i(gen);
+  int idx = dist_i(gen_);
   double weights_theshold = 0.0;
 
   std::vector<Particle> resampled_particles;
-  unsigned int tmp_n_particles = num_particles;
+  unsigned int tmp_n_particles = nParticles_;
   while (tmp_n_particles)
   {
-    weights_theshold += dist_d(gen) * 2;
+    weights_theshold += dist_d(gen_) * 2;
     while(weights_theshold > weights[idx]){
       weights_theshold -= weights[idx];
-      idx = (idx + 1) % num_particles;
+      idx = (idx + 1) % nParticles_;
     }
-    resampled_particles.push_back(particles[idx]);
+    resampled_particles.push_back(particles_[idx]);
     tmp_n_particles--;
   }
 
-  particles = resampled_particles;}
+  particles_ = resampled_particles;}
 
 void ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
 {
@@ -219,8 +220,8 @@ void ParticleFilter::SetAssociations(Particle particle, std::vector<int> associa
 string ParticleFilter::getAssociations(Particle best)
 {
 	vector<int> v = best.associations;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
+	std::stringstream ss;
+    copy( v.begin(), v.end(), std::ostream_iterator<int>(ss, " "));
     string s = ss.str();
     s = s.substr(0, s.length()-1);  // get rid of the trailing space
     return s;
@@ -253,9 +254,9 @@ void ParticleFilter::AddGaussianNoise(double std[]){
   /*
    * Add random Gaussian noise to each particle.
   */
-  for(auto& p : particles){
-    p.x += dist_x(gen);
-    p.y += dist_y(gen);
-    p.theta += dist_theta(gen);
+  for(auto& p : particles_){
+    p.x += dist_x(gen_);
+    p.y += dist_y(gen_);
+    p.theta += dist_theta(gen_);
   }
 }

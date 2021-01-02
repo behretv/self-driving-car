@@ -28,26 +28,14 @@ struct Particle {
 
 class ParticleFilter {
 
-	// Number of particles to draw
-	int num_particles;
-
-  std::default_random_engine gen;
-
-	// Flag, if filter is initialized
-	bool is_initialized;
-
-	// Vector of weights of all particles
-	std::vector<double> weights;
-  void AddGaussianNoise(double std[]);
-
 public:
 
 	// Set of current particles
-	std::vector<Particle> particles;
+	std::vector<Particle> particles_;
 
 	// Constructor
 	// @param M Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+	ParticleFilter() : nParticles_(0), isInitialized_(false) {}
 
 	// Destructor
 	~ParticleFilter() {}
@@ -106,15 +94,32 @@ public:
 	 */
 	void SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y);
 
+  /**
+   * Used for obtaining debugging information related to particles.
+   */
 	std::string getAssociations(Particle best);
 	std::string getSenseCoord(Particle best, std::string coord);
 
-	/**
-	 * initialized Returns whether particle filter is initialized yet or not.
-	 */
-	const bool initialized() const {
-		return is_initialized;
-	}
+  /**
+   * initialized Returns whether particle filter is initialized yet or not.
+   */
+  bool initialized() const {
+    return isInitialized_;
+  }
+
+private:
+	// Number of particles to draw
+	int nParticles_;
+
+	// Flag, if filter is initialized
+	bool isInitialized_;
+
+  // Generator for random  variables
+  std::default_random_engine gen_;
+
+	// Function to add noise to particles_
+  void AddGaussianNoise(double std[]);
+
 };
 
 

@@ -34,7 +34,7 @@ TEST(InitTest, TestNumberOfParticles){
     ParticleFilter filter = ParticleFilter();
     double std_pos[3] = {1.0, 2.0, 3.0};
     filter.init(0.0, 0.0, 0.0, std_pos);
-    EXPECT_EQ(filter.particles.size(), 100);
+    EXPECT_EQ(filter.particles_.size(), 100);
 }
 
 TEST(InitTest, TestGaussianDistribution){
@@ -49,7 +49,7 @@ TEST(InitTest, TestGaussianDistribution){
     std::vector<double> samples_x;
     std::vector<double> samples_y;
     std::vector<double> samples_theta;
-    for(auto& particle : filter.particles){
+    for(auto& particle : filter.particles_){
         samples_x.push_back(particle.x);
         samples_y.push_back(particle.y);
         samples_theta.push_back(particle.theta);
@@ -72,7 +72,7 @@ TEST(PredicitionTest, TestGaussianDistribution){
     std::vector<double> samples_x;
     std::vector<double> samples_y;
     std::vector<double> samples_theta;
-    for(auto& particle : filter.particles){
+    for(auto& particle : filter.particles_){
         samples_x.push_back(particle.x);
         samples_y.push_back(particle.y);
         samples_theta.push_back(particle.theta);
