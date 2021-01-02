@@ -108,8 +108,6 @@ public:
 
 	std::string getAssociations(Particle best);
 	std::string getSenseCoord(Particle best, std::string coord);
-	std::string getSenseX(Particle best);
-	std::string getSenseY(Particle best);
 
 	/**
 	 * initialized Returns whether particle filter is initialized yet or not.

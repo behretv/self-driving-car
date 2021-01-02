@@ -31,33 +31,26 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     return;
   }
 
-  // Initializing the number of particles
   num_particles = 100;
 
-  // Extracting standard deviations
-  double std_x = std[0];
-  double std_y = std[1];
-  double std_theta = std[2];
-
-  // Creating normal distributions
-  normal_distribution<double> dist_x(x, std_x);
-  normal_distribution<double> dist_y(y, std_y);
-  normal_distribution<double> dist_theta(theta, std_theta);
-
-  // Generate particles with normal distribution with mean on GPS values.
-  for (int i = 0; i < num_particles; i++) {
-
-    Particle particle;
+  /*
+   * Set the number of particles. Initialize all particles to
+   * first position (based on estimates of x, y, theta and their uncertainties
+   * from GPS) and all weights to 1.
+  */
+  for(int i = 0; i < num_particles; i++){
+    auto particle = Particle();
     particle.id = i;
-    particle.x = dist_x(gen);
-    particle.y = dist_y(gen);
-    particle.theta = dist_theta(gen);
+    particle.x = x;
+    particle.y = y;
+    particle.theta = theta;
     particle.weight = 1.0;
-
     particles.push_back(particle);
-	}
+  }
 
-  // The filter is now initialized.
+  /* Add Gaussian distributed noise to x, y and theta */
+  AddGaussianNoise(std);
+
   is_initialized = true;
 }
 
@@ -280,25 +273,37 @@ string ParticleFilter::getAssociations(Particle best)
     s = s.substr(0, s.length()-1);  // get rid of the trailing space
     return s;
 }
-string ParticleFilter::getSenseX(Particle best)
-{
-	vector<double> v = best.sense_x;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
-}
-string ParticleFilter::getSenseY(Particle best)
-{
-	vector<double> v = best.sense_y;
-	stringstream ss;
-    copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
-    string s = ss.str();
-    s = s.substr(0, s.length()-1);  // get rid of the trailing space
-    return s;
-}
-string ParticleFilter::getSenseCoord(Particle best, string coord){
-  return (coord == "X" ? getSenseX(best) : getSenseY(best));
+
+string ParticleFilter::getSenseCoord(Particle best, string coord) {
+  vector<double> v;
+
+  if (coord == "X") {
+    v = best.sense_x;
+  } else {
+    v = best.sense_y;
+  }
+
+  std::stringstream ss;
+  copy(v.begin(), v.end(), std::ostream_iterator<float>(ss, " "));
+  string s = ss.str();
+  s = s.substr(0, s.length()-1);  // get rid of the trailing space
+  return s;
 }
 
+void ParticleFilter::AddGaussianNoise(double std[]){
+  double std_x = std[0];
+  double std_y = std[1];
+  double std_theta = std[2];
+  std::normal_distribution<double> dist_x(0, std_x);
+  std::normal_distribution<double> dist_y(0, std_y);
+  std::normal_distribution<double> dist_theta(0, std_theta);
+
+  /*
+   * Add random Gaussian noise to each particle.
+  */
+  for(auto& p : particles){
+    p.x += dist_x(gen);
+    p.y += dist_y(gen);
+    p.theta += dist_theta(gen);
+  }
+}
