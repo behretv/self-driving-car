@@ -24,19 +24,17 @@ struct Particle {
 };
 
 
-
 class ParticleFilter {
-
 public:
-
 	// Set of current particles
 	std::vector<Particle> particles_;
 
-	// Constructor
-	// @param M Number of particles
+	/** Constructor
+	 * @param M Number of particles */
 	ParticleFilter() : nParticles_(0), isInitialized_(false) {}
+	ParticleFilter(unsigned int n) : nParticles_(n), isInitialized_(false) {}
 
-	// Destructor
+	/* Destructor */
 	~ParticleFilter() {}
 
 	/**
@@ -67,7 +65,8 @@ public:
 	 * @param predicted Vector of predicted landmark observations
 	 * @param observations Vector of landmark observations
 	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
+	void dataAssociation(std::vector<LandmarkObs> predicted,
+						 std::vector<LandmarkObs>& observations);
 
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the
@@ -78,8 +77,10 @@ public:
 	 * @param observations Vector of landmark observations
 	 * @param map Map class containing map landmarks
 	 */
-	void updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations,
-			Map map_landmarks);
+	void updateWeights(double sensor_range,
+					   double std_landmark[],
+					   std::vector<LandmarkObs> observations,
+					   Map map_landmarks);
 
 	/**
 	 * resample Resamples from the updated set of particles to form
@@ -88,39 +89,39 @@ public:
 	void resample();
 
 	/*
-	 * Set a particles list of associations, along with the associations calculated world x,y coordinates
-	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
+	 * Set a particles list of associations, along with the associations calculated world x,y
+	 * coordinates. This can be a very useful debugging tool to make sure transformations are
+	 * correct and assocations correctly connected.
 	 */
-	void SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y);
+	void SetAssociations(Particle particle,
+						 std::vector<int> associations,
+						 std::vector<double> sense_x,
+						 std::vector<double> sense_y);
 
-  /**
-   * Used for obtaining debugging information related to particles.
-   */
+	/**
+	 * Used for obtaining debugging information related to particles.
+	 */
 	std::string getAssociations(Particle best);
 	std::string getSenseCoord(Particle best, std::string coord);
 
-  /**
-   * initialized Returns whether particle filter is initialized yet or not.
-   */
-  bool initialized() const {
-    return isInitialized_;
-  }
+	/**
+	 * initialized Returns whether particle filter is initialized yet or not.
+	 */
+	bool initialized() const {return isInitialized_;}
 
 private:
-	// Number of particles to draw
+	/* Number of particles to draw */
 	int nParticles_;
 
-	// Flag, if filter is initialized
+	/* Flag, if filter is initialized */
 	bool isInitialized_;
 
-  // Generator for random  variables
-  std::default_random_engine gen_;
+	/* Generator for random  variables */
+	std::default_random_engine gen_;
 
-	// Function to add noise to particles_
-  void AddGaussianNoise(double std[]);
+	/* Function to add noise to particles_ */
+	void AddGaussianNoise(double std[]);
 
 };
-
-
 
 #endif /* PARTICLE_FILTER_H_ */
