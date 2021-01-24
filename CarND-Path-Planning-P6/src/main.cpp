@@ -1,19 +1,41 @@
-#include <uWS/uWS.h>
+#include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
+#include "behaviour_planning.h"
+#include "helpers.h"
+#include "json.hpp"
+#include "path_planning.h"
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <uWS/uWS.h>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/Eigen/QR"
-#include "helpers.h"
-#include "json.hpp"
 
 // for convenience
 using nlohmann::json;
 using std::string;
 using std::vector;
 
-int main() {
+// Checks if the SocketIO event has JSON data.
+// If there is data the JSON object in string format will be returned,
+//   else the empty string "" will be returned.
+string hasData(string s)
+{
+  auto found_null = s.find("null");
+  auto b1 = s.find_first_of("[");
+  auto b2 = s.find_first_of("}");
+  if (found_null != string::npos)
+  {
+    return "";
+  }
+  else if (b1 != string::npos && b2 != string::npos)
+  {
+    return s.substr(b1, b2 - b1 + 2);
+  }
+  return "";
+}
+
+int main()
+{
   uWS::Hub h;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
@@ -31,7 +53,8 @@ int main() {
   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
 
   string line;
-  while (getline(in_map_, line)) {
+  while (getline(in_map_, line))
+  {
     std::istringstream iss(line);
     double x;
     double y;
@@ -50,25 +73,29 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy]
-              (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-               uWS::OpCode opCode) {
+  PathPlanning planner(map_waypoints_x, map_waypoints_y, map_waypoints_s);
+
+  h.onMessage([&planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
+               &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+                                                     uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-    if (length && length > 2 && data[0] == '4' && data[1] == '2') {
+    if (length && length > 2 && data[0] == '4' && data[1] == '2')
+    {
 
       auto s = hasData(data);
 
-      if (s != "") {
+      if (s != "")
+      {
         auto j = json::parse(s);
-        
+
         string event = j[0].get<string>();
-        
-        if (event == "telemetry") {
+
+        if (event == "telemetry")
+        {
           // j[1] is the data JSON object
-          
+
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -80,38 +107,61 @@ int main() {
           // Previous path data given to the Planner
           auto previous_path_x = j[1]["previous_path_x"];
           auto previous_path_y = j[1]["previous_path_y"];
-          // Previous path's end s and d values 
+          // Previous path's end s and d values
           double end_path_s = j[1]["end_path_s"];
           double end_path_d = j[1]["end_path_d"];
 
-          // Sensor Fusion Data, a list of all other cars on the same side 
+          // Sensor Fusion Data, a list of all other cars on the same side
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
 
           json msgJson;
 
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
           /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
+          std::vector<std::vector<double>> prev_path = {previous_path_x, previous_path_y};
+          int prev_size = previous_path_x.size();
 
+          std::vector<std::vector<double>> cars;
+          int num_cars = sensor_fusion.size();
 
-          msgJson["next_x"] = next_x_vals;
-          msgJson["next_y"] = next_y_vals;
+          for (int i = 0; i < num_cars; i++)
+          {
+            double sensor_vx = sensor_fusion[i][3];
+            double sensor_vy = sensor_fusion[i][4];
+            double sensor_s = sensor_fusion[i][5];
+            auto sensor_d = static_cast<double>(sensor_fusion[i][6]);
 
-          auto msg = "42[\"control\","+ msgJson.dump()+"]";
+            cars.push_back({sensor_vx, sensor_vy, sensor_s, sensor_d});
+          }
+
+          // Behavior logic
+          BehaviourPlanning behaviour(car_s, car_d, cars);
+          behaviour.Update(car_speed);
+
+          planner.SetDefaultStartPointsForSplines(car_x, car_y, car_yaw);
+          planner.SetStartPointsForSpline(prev_path);
+          planner.ComputeSpline(car_s, behaviour.GetGoalLane());
+          planner.SetStartPointsForTrajectory(prev_path);
+          planner.ComputeTrajectory(behaviour.GetAcceleration(), behaviour.GetSpeedCarAhead());
+
+          msgJson["next_x"] = planner.GetNextVectorX();
+          msgJson["next_y"] = planner.GetNextVectorY();
+
+          auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-        }  // end "telemetry" if
-      } else {
+        } // end "telemetry" if
+      }
+      else
+      {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
       }
-    }  // end websocket if
+    } // end websocket if
   }); // end h.onMessage
 
   h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
@@ -125,12 +175,15 @@ int main() {
   });
 
   int port = 4567;
-  if (h.listen(port)) {
+  if (h.listen(port))
+  {
     std::cout << "Listening to port " << port << std::endl;
-  } else {
+  }
+  else
+  {
     std::cerr << "Failed to listen to port" << std::endl;
     return -1;
   }
-  
+
   h.run();
 }
