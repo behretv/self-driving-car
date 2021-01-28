@@ -8,14 +8,6 @@ BehaviourPlanning::BehaviourPlanning(const double &ego_s,
     ego_lane_ = LateralDistance2CarLane(ego_d);
 }
 
-void BehaviourPlanning::Update(const double &ego_speed)
-{
-    CheckTrafficOnLanes();
-    ComputeGoalLane();
-    SpeedCarAhead();
-    DetermineAcceleration(ego_speed);
-}
-
 void BehaviourPlanning::CheckTrafficOnLanes()
 {
     bool car_front = false;
@@ -113,7 +105,7 @@ void BehaviourPlanning::DetermineAcceleration(const double &speed)
     }
 }
 
-void BehaviourPlanning::SpeedCarAhead()
+void BehaviourPlanning::ComputeSpeedCarAhead()
 {
     speed_car_ahead_mph_ = -1.0;
     for (const auto &car : cars_)

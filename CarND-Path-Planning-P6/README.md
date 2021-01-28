@@ -1,8 +1,8 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
-   
+
 ### Simulator.
-You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
+You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).
 
 To run the simulator on Mac/Linux, first make the binary file executable with the following command:
 ```shell
@@ -43,13 +43,13 @@ Here is the data provided from the Simulator to the C++ Program
 #### Previous path data given to the Planner
 
 //Note: Return the previous list but with processed points removed, can be a nice tool to show how far along
-the path has processed since last time. 
+the path has processed since last time.
 
 ["previous_path_x"] The previous list of x points previously given to the simulator
 
 ["previous_path_y"] The previous list of y points previously given to the simulator
 
-#### Previous path's end s and d values 
+#### Previous path's end s and d values
 
 ["end_path_s"] The previous list's last point's frenet s value
 
@@ -57,7 +57,7 @@ the path has processed since last time.
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
 
 ## Details
 
@@ -87,7 +87,7 @@ A really helpful resource for doing this project and creating smooth trajectorie
   * Run either `install-mac.sh` or `install-ubuntu.sh`.
   * If you install from source, checkout to commit `e94b6e1`, i.e.
     ```
-    git clone https://github.com/uWebSockets/uWebSockets 
+    git clone https://github.com/uWebSockets/uWebSockets
     cd uWebSockets
     git checkout e94b6e1
     ```
@@ -143,3 +143,15 @@ still be compilable with cmake and make./
 ## How to write a README
 A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
+## Model Documentation
+
+### Behavior Planning
+In the beginning the traffic is analyzed by using the sensor fusion and ego-motion data. The occupation of the
+lanes is determined by checking for vehicles on the current and neighbor lanes within predefined ranges. With the
+traffic information the goal lane is determined. The preferred lane is the center lane and if all three lanes are occupied, the car stays on the current lane. In order to to avoid a crash with a car ahead the velocity of the car ahead is computed.
+From the information if a car is ahead and the speed of that car, the acceleration is determined.
+
+### Path Planning
+The last two points from the previous path are used as start points for the spline computation are, if there is no previous path, the ego motion of the car is used to compute start points. Subsequently waypoints defined are along the center of the goal lane, with a fixed distance in s-direction of [50, 70, 90]. Together with the start points these points are transformed to car coordinates. From the points in car coordinates the spline is computed.
+
+To smooth the trajectory the points form the previous path's are used and the remaining point to fill the path length of 50 are computed from the spline in combination of the step size. The step size is used to achieve the goal velocity.

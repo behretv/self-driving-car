@@ -16,11 +16,13 @@ public:
     vector<double> GetNextVectorX() { return next_vec_x_; }
     vector<double> GetNextVectorY() { return next_vec_y_; }
 
-    void ComputeTrajectory(const double &speed_inc, const double &speed_car_ahead);
     void SetDefaultStartPointsForSplines(double car_x, double car_y, double car_yaw);
+
+    void SetStartPointsForTrajectory(vector<vector<double>> &prev_path);
+    void ComputeTrajectory(const double &speed_inc, const double &speed_car_ahead);
+
     void SetStartPointsForSpline(vector<vector<double>> &prev_path);
     void ComputeSpline(double car_s, int goal_lane);
-    void SetStartPointsForTrajectory(vector<vector<double>> &prev_path);
 
 private:
     const vector<double> waypoint_vec_s_ = {50.0, 70.0, 90.0};

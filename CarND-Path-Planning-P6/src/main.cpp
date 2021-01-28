@@ -73,9 +73,9 @@ int main()
     map_waypoints_dy.push_back(d_y);
   }
 
-  PathPlanning planner(map_waypoints_x, map_waypoints_y, map_waypoints_s);
+  PathPlanning path(map_waypoints_x, map_waypoints_y, map_waypoints_s);
 
-  h.onMessage([&planner, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
+  h.onMessage([&path, &map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
                &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                                                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -139,16 +139,19 @@ int main()
 
           // Behavior logic
           BehaviourPlanning behaviour(car_s, car_d, cars);
-          behaviour.Update(car_speed);
+          behaviour.CheckTrafficOnLanes();
+          behaviour.ComputeGoalLane();
+          behaviour.ComputeSpeedCarAhead();
+          behaviour.DetermineAcceleration(car_speed);
 
-          planner.SetDefaultStartPointsForSplines(car_x, car_y, car_yaw);
-          planner.SetStartPointsForSpline(prev_path);
-          planner.ComputeSpline(car_s, behaviour.GetGoalLane());
-          planner.SetStartPointsForTrajectory(prev_path);
-          planner.ComputeTrajectory(behaviour.GetAcceleration(), behaviour.GetSpeedCarAhead());
+          path.SetDefaultStartPointsForSplines(car_x, car_y, car_yaw);
+          path.SetStartPointsForSpline(prev_path);
+          path.ComputeSpline(car_s, behaviour.GetGoalLane());
+          path.SetStartPointsForTrajectory(prev_path);
+          path.ComputeTrajectory(behaviour.GetAcceleration(), behaviour.GetSpeedCarAhead());
 
-          msgJson["next_x"] = planner.GetNextVectorX();
-          msgJson["next_y"] = planner.GetNextVectorY();
+          msgJson["next_x"] = path.GetNextVectorX();
+          msgJson["next_y"] = path.GetNextVectorY();
 
           auto msg = "42[\"control\"," + msgJson.dump() + "]";
 

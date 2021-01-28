@@ -17,11 +17,14 @@ public:
     BehaviourPlanning(const double &ego_s, const double &ego_d, vector<vector<double>> &cars);
     ~BehaviourPlanning() = default;
 
-    void Update(const double &ego_speed);
-
     int GetGoalLane() { return goal_lane_; }
     double GetAcceleration() { return acceleration_; }
     double GetSpeedCarAhead() { return speed_car_ahead_mph_; }
+
+    void CheckTrafficOnLanes();
+    void ComputeGoalLane();
+    void DetermineAcceleration(const double &speed);
+    void ComputeSpeedCarAhead();
 
 private:
     const double kMaxAcceleration = 0.2;
@@ -39,11 +42,6 @@ private:
     double acceleration_;
     double speed_car_ahead_mph_;
     vector<vector<double>> cars_;
-
-    void CheckTrafficOnLanes();
-    void ComputeGoalLane();
-    void DetermineAcceleration(const double &speed);
-    void SpeedCarAhead();
 };
 
 #endif //PATH_PLANNING_PATH_PLANNER_H

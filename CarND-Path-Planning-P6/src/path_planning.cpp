@@ -36,7 +36,6 @@ void PathPlanning::ComputeTrajectory(const double &acceleration, const double &s
         {
             ego_v_ += acceleration;
         }
-        std::cout << ego_v_ << " ? " << speed_car_ahead << std::endl;
 
         // Compute step size along the spline
         double step_size_x = ComputeStepSize();
