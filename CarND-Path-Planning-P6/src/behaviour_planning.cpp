@@ -93,15 +93,15 @@ void BehaviourPlanning::ComputeGoalLane()
     goal_lane_ = goal_lane;
 }
 
-void BehaviourPlanning::DetermineAcceleration(const double &speed)
+void BehaviourPlanning::DetermineAcceleration(const double &ego_speed)
 {
     if (!is_traffic_ahead_)
     {
-        acceleration_ = (speed < kMaxSpeed) ? kMaxAcceleration : 0;
+        acceleration_ = (ego_speed < kMaxSpeed) ? kMaxAcceleration : 0;
     }
     else
     {
-        acceleration_ = (speed > speed_car_ahead_mph_) ? -kMaxAcceleration : 0;
+        acceleration_ = (ego_speed > speed_car_ahead_mph_) ? -kMaxAcceleration : 0;
     }
 }
 

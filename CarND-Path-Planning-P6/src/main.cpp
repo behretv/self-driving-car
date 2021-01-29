@@ -121,17 +121,14 @@ int main()
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          std::vector<std::vector<double>> prev_path = {previous_path_x, previous_path_y};
-          int prev_size = previous_path_x.size();
-
           std::vector<std::vector<double>> cars;
           int num_cars = sensor_fusion.size();
 
           for (int i = 0; i < num_cars; i++)
           {
-            double sensor_vx = sensor_fusion[i][3];
-            double sensor_vy = sensor_fusion[i][4];
-            double sensor_s = sensor_fusion[i][5];
+            auto sensor_vx = static_cast<double>(sensor_fusion[i][3]);
+            auto sensor_vy = static_cast<double>(sensor_fusion[i][4]);
+            auto sensor_s = static_cast<double>(sensor_fusion[i][5]);
             auto sensor_d = static_cast<double>(sensor_fusion[i][6]);
 
             cars.push_back({sensor_vx, sensor_vy, sensor_s, sensor_d});
@@ -144,6 +141,7 @@ int main()
           behaviour.ComputeSpeedCarAhead();
           behaviour.DetermineAcceleration(car_speed);
 
+          std::vector<std::vector<double>> prev_path = {previous_path_x, previous_path_y};
           path.SetDefaultStartPointsForSplines(car_x, car_y, car_yaw);
           path.SetStartPointsForSpline(prev_path);
           path.ComputeSpline(car_s, behaviour.GetGoalLane());

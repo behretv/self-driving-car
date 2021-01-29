@@ -146,12 +146,45 @@ A well written README file can enhance your project and portfolio.  Develop your
 ## Model Documentation
 
 ### Behavior Planning
-In the beginning the traffic is analyzed by using the sensor fusion and ego-motion data. The occupation of the
-lanes is determined by checking for vehicles on the current and neighbor lanes within predefined ranges. With the
-traffic information the goal lane is determined. The preferred lane is the center lane and if all three lanes are occupied, the car stays on the current lane. In order to to avoid a crash with a car ahead the velocity of the car ahead is computed.
-From the information if a car is ahead and the speed of that car, the acceleration is determined.
+In the beginning the traffic is analyzed by using the sensor fusion and ego-motion data. From the sensor fusion data the velocity in x-/y-direction is extracted as well as the position of each obsticale/car in d/s coordinates. The occupation of the
+lanes is determined by checking for vehicles on the current and neighbor lanes within the following predefined ranges:
+```C++
+const double kMinDistanceSameLane = 45;
+const double kMinDistanceNeighbourLaneForward = 50;
+const double kMinDistanceNeighbourLaneBackward = -15;
+```
+With the traffic information the goal lane is determined (behaviour_planning.cpp line 52 - 94). The preferred lane is the center lane and if all three lanes are occupied, the car stays on the current lane. In order to to avoid a crash with a car ahead the velocity of the car ahead is computed (behaviour planning.cpp line 108-133).
+
+From the information if a car is ahead, the speed of that car and the ego speed, the acceleration is determined:
+```C++
+if (!is_traffic_ahead_)
+{
+    acceleration_ = (ego_speed < kMaxSpeed) ? kMaxAcceleration : 0;
+}
+else
+{
+    acceleration_ = (ego_speed > speed_car_ahead_mph_) ? -kMaxAcceleration : 0;
+}
+```
+where acceleration is set to negative maximum acceleration (-0.2 mph = -0.09 m/s), maximum acceleration (+0.2 mph = +0.09 m/s) or to zero.
 
 ### Path Planning
-The last two points from the previous path are used as start points for the spline computation are, if there is no previous path, the ego motion of the car is used to compute start points. Subsequently waypoints defined are along the center of the goal lane, with a fixed distance in s-direction of [50, 70, 90]. Together with the start points these points are transformed to car coordinates. From the points in car coordinates the spline is computed.
+The last two points from the previous path are used as start points and the yaw angle for the spline computation (path_planning.cpp line 91 - 113), if there is no previous path, the ego motion of the car is used to compute start points:
+```C++
+ego_x_ = car_x;
+ego_y_ = car_y;
+ego_yaw_ = deg2rad(car_yaw);
+ego_prev_x_ = car_x - cos(car_yaw);
+ego_prev_y_ = car_y - sin(car_yaw);
+```
 
-To smooth the trajectory the points form the previous path's are used and the remaining point to fill the path length of 50 are computed from the spline in combination of the step size. The step size is used to achieve the goal velocity.
+Subsequently waypoints defined are along the center of the goal lane, with a fixed distance in s-direction of [50, 70, 90]. Together with the start points these points are transformed to car coordinates. From the points in car coordinates the spline is computed (path_planning.cpp line 115 -137).
+
+To smooth the trajectory the points form the previous path's are used and the remaining point to fill the path length of 50 are computed from the spline in combination of the step size (path_planning.cpp line 18 -54). The step size is used to achieve the goal velocity and computed the following way:
+```C++
+double goal_y = spline_(goal_x);
+double goal_distance = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
+double v_in_ms = ego_v_ / kMeterPerSecondToMilesPerHour;
+double num_steps = goal_distance / (kDeltaTime * v_in_ms);
+double step_size_x = goal_x / num_steps;
+```
