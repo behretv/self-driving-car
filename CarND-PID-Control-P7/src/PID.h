@@ -1,8 +1,9 @@
 #ifndef PID_H
 #define PID_H
 
-class PID {
- public:
+class PID
+{
+public:
   /**
    * Constructor
    */
@@ -31,20 +32,30 @@ class PID {
    */
   double TotalError();
 
- private:
+  /**
+   * Setter for any of the k-parameters according to idx
+   */
+  void SetParameterByIndex(double value, int index);
+
+  /**
+   * Print function for the k-parameters for debugging
+   */
+  void PrintK();
+
+private:
   /**
    * PID Errors
    */
-  double p_error;
-  double i_error;
-  double d_error;
+  double p_error_;
+  double i_error_;
+  double d_error_;
 
   /**
    * PID Coefficients
-   */ 
-  double Kp;
-  double Ki;
-  double Kd;
+   */
+  double kp_;
+  double ki_;
+  double kd_;
 };
 
-#endif  // PID_H
+#endif // PID_H
