@@ -37,10 +37,19 @@ double PID::TotalError()
   /**
    * TODO: Calculate and return the total error
    */
-  return -(kp_ * p_error_ + ki_ * i_error_ + kd_ * d_error_); // TODO: Add your total error calc here!
+  double total_error = -(kp_ * p_error_ + ki_ * i_error_ + kd_ * d_error_);
+  if (total_error < kMinSteering)
+  {
+    total_error = kMinSteering;
+  }
+  else if (total_error > kMaxSteering)
+  {
+    total_error = kMaxSteering;
+  }
+  return total_error;
 }
 
-void PID::SetParameterByIndex(double value, int index)
+void PID::AddParameterByIndex(double value, int index)
 {
   switch (index)
   {
@@ -61,5 +70,5 @@ void PID::SetParameterByIndex(double value, int index)
 
 void PID::PrintK()
 {
-  std::cout << "P=" << kp_ << "|" << ki_ << "|" << kd_ << std::endl;
+  printf("P =[%.5f|%.5f|%.5f] => %.4f - PID\n", kp_, ki_, kd_, p_error_ * p_error_);
 }

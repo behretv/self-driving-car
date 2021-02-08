@@ -13,9 +13,13 @@ using std::string;
 using std::vector;
 
 // For converting back and forth between radians and degrees.
+constexpr int kMinIterations = 50;
+constexpr int kMaxIterations = 600;
+constexpr double kTwiddleTolerance = 1e-5;
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
+double SumVector(const vector<double> vec) { return std::accumulate(vec.begin(), vec.end(), 0.0); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -38,19 +42,82 @@ string hasData(string s)
 
 struct Twiddle
 {
-  bool is_active_ = true;
-  int i_ = 0;
-  int n_ = 0;
-  double error_ = 1e5;
-  double best_error_ = 1e5;
-  double mean_error_ = 0.0;
-  vector<double> p_{0, 0, 0};
-  vector<double> dp_{1, 1, 1};
-  vector<bool> increase_{true, true, true};
+  bool stop = false;
+  bool is_first_loop = true;
+  bool is_active = false;
+  int i = 0;
+  int n = 0;
+  double error = 0.0;
+  double mean_error = 0.0;
+  double best_error = 1e5;
+  vector<double> dp{1, 0.01, 1};
+  vector<bool> increase{true, true, true};
 
-  double SumDp() { return std::accumulate(dp_.begin(), dp_.end(), 0); }
-  void PrintP() { std::cout << "P=" << p_[0] << "|" << p_[1] << "|" << p_[2] << std::endl; }
+  void PrintDP() { printf("DP=[%.5f|%.5f|%.5f] n=%i i=%i  +++ ", dp[0], dp[1], dp[2], n, i); }
 };
+
+bool CheckTrainingStatus(Twiddle &twiddle, const double &speed, const double &angle)
+{
+
+  bool restart_twiddle = false;
+  auto &n = twiddle.n;
+  bool is_any_thresholds_exceeded = (speed < 1.0 || deg2rad(angle) > 1.0 || deg2rad(angle) < -1.0);
+  if ((n > kMinIterations && is_any_thresholds_exceeded) || n > kMaxIterations)
+  {
+    restart_twiddle = true;
+    std::cout << "Twiddle has been activated/restarted" << std::endl;
+    std::cout << "Speed: " << speed << std::endl;
+    std::cout << "Angle (degree): " << (angle) << std::endl;
+    std::cout << "Angle (rad): " << deg2rad(angle) << std::endl;
+  }
+  return restart_twiddle;
+}
+
+void Train(Twiddle &twiddle, PID &pid, const double &mean_error)
+{
+  auto &i = twiddle.i;
+  auto &dp = twiddle.dp;
+  auto &best_error = twiddle.best_error;
+  auto &done = twiddle.increase;
+  if (twiddle.is_first_loop)
+  {
+    twiddle.is_first_loop = false;
+  }
+  else
+  {
+    if (mean_error < best_error)
+    {
+      // New best error found then increase and go to next dp_i
+      best_error = mean_error;
+      dp[i] *= 1.1;
+      done[i] = true;
+    }
+    else if (done[i])
+    {
+      pid.AddParameterByIndex(-2 * dp[i], i);
+      done[i] = false;
+    }
+    else
+    {
+      pid.AddParameterByIndex(dp[i], i);
+      dp[i] *= 0.9;
+      done[i] = true;
+    }
+
+  } // check if first loop
+
+  if (done[i])
+  {
+    // Reset to default: false
+    // done[i] = false;
+
+    // Go to the next dp
+    i = (i == 2) ? 0 : i + 1;
+
+    // Add dp prior the next loop
+    pid.AddParameterByIndex(dp[i], i);
+  }
+}
 
 int main()
 {
@@ -58,10 +125,17 @@ int main()
 
   PID pid;
   Twiddle twiddle;
+
   /**
-   * TODO: Initialize the pid variable.
+   * Initialize the pid variable.
    */
-  pid.Init(0.1, 0.3, 0.0001);
+  double kp = 0.53;
+  double ki = 0.005;
+  double kd = 3.7;
+  pid.Init(kp, ki, kd);
+
+  // Train with twiddle (=false) or run without twiddle (=true)
+  twiddle.stop = true;
 
   h.onMessage([&pid, &twiddle](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                                uWS::OpCode opCode) {
@@ -91,76 +165,61 @@ int main()
            * NOTE: Feel free to play around with the throttle and speed.
            *   Maybe use another PID controller to control the speed!
            */
-          if (twiddle.n_ > 100 && speed <= 1.0)
-          {
-            twiddle.is_active_ = false;
-            std::cout << "Warning: Twiddle has been deactivated" << std::endl;
-          }
 
-          // Twiddle
-          if (twiddle.is_active_ && twiddle.SumDp() > 1e-9)
+          // Check if twiddle should be restarted
+          if (twiddle.stop)
           {
-            auto &i = twiddle.i_;
-            auto &n = twiddle.n_;
-            auto &p = twiddle.p_;
-            auto &dp = twiddle.dp_;
-            auto &error = twiddle.error_;
-            auto &best_error = twiddle.best_error_;
-            auto &mean_error = twiddle.mean_error_;
-            auto &increase = twiddle.increase_;
+            std::cout << " => Twiddle has been stopped!" << std::endl;
+          }
+          else
+          {
+            twiddle.is_active = CheckTrainingStatus(twiddle, speed, angle);
+
+            // Creating aliases
+            auto &n = twiddle.n;
+            auto &error = twiddle.error;
+            auto &mean_error = twiddle.mean_error;
+            auto &dp = twiddle.dp;
 
             // Init values
             n++;
             error += cte * cte;
             mean_error = error / n;
 
-            if (mean_error < best_error)
+            // Twiddle
+            if (twiddle.is_active && SumVector(dp) > kTwiddleTolerance)
             {
-              best_error = mean_error;
-              dp[i] *= 1.1;
-              increase[i] = true;
-              i = (i == 3) ? 0 : i + 1;
-            }
-            else
-            {
-              if (increase[i])
-              {
-                p[i] -= 2 * dp[i];
-                increase[i] = false;
-              }
-              else
-              {
-                pid.SetParameterByIndex(dp[i], i);
-                dp[i] *= 0.9;
-                increase[i] = true;
-              }
-            }
+              Train(twiddle, pid, mean_error);
+              n = 0;
+              error = 0;
+              mean_error = 0;
+              twiddle.is_active = false;
 
-            if (increase[i])
-            {
-              pid.SetParameterByIndex(dp[i], i);
+              // Reset simulator
+              std::string msg = "42[\"reset\",{}]";
+              ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
             }
-            n = 0;
-            error = 0;
-            mean_error = 0;
-
-          } // twiddle active and accuracy can be increased
+            else if (SumVector(dp) < kTwiddleTolerance)
+            {
+              std::cout << " => Twiddle accuracy reached: " << SumVector(dp) << std::endl;
+              twiddle.stop = true;
+            } // twiddle active and accuracy can be increased
+          }
 
           // Run car
           pid.UpdateError(cte);
           steer_value = pid.TotalError();
 
           // DEBUG
-          twiddle.PrintP();
+          twiddle.PrintDP();
+          printf(" {%.1f}", angle);
           pid.PrintK();
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value
-                    << std::endl;
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = 0.3;
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          // std::cout << msg << std::endl;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         } // end "telemetry" if
       }

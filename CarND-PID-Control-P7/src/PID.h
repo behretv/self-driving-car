@@ -1,6 +1,9 @@
 #ifndef PID_H
 #define PID_H
 
+const double kMinSteering = -1.0;
+const double kMaxSteering = 1.0;
+
 class PID
 {
 public:
@@ -35,7 +38,7 @@ public:
   /**
    * Setter for any of the k-parameters according to idx
    */
-  void SetParameterByIndex(double value, int index);
+  void AddParameterByIndex(double value, int index);
 
   /**
    * Print function for the k-parameters for debugging
