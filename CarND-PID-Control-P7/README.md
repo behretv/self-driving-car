@@ -106,7 +106,7 @@ of the goal lane.
 p_error_ = cte;
 ```
 ## Integral
-The i-component penalizes the sum of all CTE's. Hence by nature the coefficient should be much smaller than the ones from the other errors. This component tackles systematic bias and should be increased if drift is high.
+The i-component penalizes the sum of all CTE's. Hence by nature the coefficient should be much smaller than the ones from the other errors, hence the learning rate  `delta_ki` was also chosen much smaller during the hyper-parameter tuning. This component tackles systematic bias and should be increased if drift is high.
 ```C++
 i_error_ += cte;
 ```
