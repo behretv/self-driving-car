@@ -101,18 +101,18 @@ A well written README file can enhance your project and portfolio.  Develop your
 
 ## Proportional
 The p-component is the proportional error and penalizes directly using the cross-track-error (CTE). Thus, this error helps the car to move into the direction
-of the goal lane.
+of the goal lane. But if the p-component is increased too much in can cause overshooting and/or oscillation.
 ```C++
 p_error_ = cte;
 ```
 ## Integral
-The i-component penalizes the sum of all CTE's. Hence by nature the coefficient should be much smaller than the ones from the other errors, hence the learning rate  `delta_ki` was also chosen much smaller during the hyper-parameter tuning. This component tackles systematic bias and should be increased if drift is high.
+The i-component penalizes the sum of all CTE's. Hence by nature the coefficient should be much smaller than the ones from the other errors, hence the learning rate  `delta_ki` was also chosen much smaller during the hyper-parameter tuning. This component tackles systematic bias and should be increased if drift is high. But if it is chosen too high the integral error will be much greater than the other two error (p and d) and it will be impossible to tune them.
 ```C++
 i_error_ += cte;
 ```
 
 ## Derivative
-The d-component penalizes changes in the CTE. Thus, component helps to avoid oscillation and hence should be increased if oscillation is too high.
+The d-component penalizes changes in the CTE. Thus, damps overshooting and helps to avoid oscillation and hence should be increased if overshoot and/or oscillation is too high. However if the d-component is chosen too high it will fight what the the p-component and the i-component try to accomplish.
 ```C++
 d_error_ = cte - previous_cte;
 ```
